@@ -1316,8 +1316,12 @@ const flow = document.getElementById('flow');
 let expandedId = null;
 let isEnlarged = false;
 const preloadCache = {};
-let gridContainer = null;
-let expandedEl = null;
+
+// DOM references
+let gridBefore = null;   // grid-section with items before expanded
+let gridAfter = null;    // grid-section with items after expanded
+let expandedEl = null;   // the expanded view element
+let allGridItems = [];   // all grid-item DOM elements, built once
 let lastClickedGridItem = null;
 
 function getIdx() {
@@ -1347,16 +1351,14 @@ function isDesktop() {
   return window.innerWidth > 1100;
 }
 
-// === Build grid once, never destroy ===
+// === Build all grid items once ===
 
-function buildGrid() {
-  gridContainer = document.createElement('div');
-  gridContainer.className = 'grid-section';
-
-  items.forEach((item, i) => {
+function init() {
+  allGridItems = items.map((item, i) => {
     const div = document.createElement('div');
     div.className = 'grid-item' + (item.type === 'text' ? ' text-block' : '');
     div.dataset.itemId = item.id;
+    div.dataset.itemIndex = i;
     div.style.animationDelay = `${i * 0.035}s`;
 
     if (item.type === 'image') {
@@ -1373,25 +1375,67 @@ function buildGrid() {
       }
     }
 
-    gridContainer.appendChild(div);
+    return div;
   });
 
-  flow.appendChild(gridContainer);
+  renderFlat();
 }
 
-// === Expand / Close without rebuilding grid ===
+// === Render: flat grid (no expanded) ===
+
+function renderFlat() {
+  flow.innerHTML = '';
+  const grid = document.createElement('div');
+  grid.className = 'grid-section';
+  allGridItems.forEach(el => grid.appendChild(el));
+  flow.appendChild(grid);
+  gridBefore = grid;
+  gridAfter = null;
+}
+
+// === Render: split grid around expanded item ===
+
+function renderSplit(itemIndex) {
+  flow.innerHTML = '';
+
+  // Grid before
+  gridBefore = document.createElement('div');
+  gridBefore.className = 'grid-section';
+  for (let i = 0; i < itemIndex; i++) {
+    gridBefore.appendChild(allGridItems[i]);
+  }
+  flow.appendChild(gridBefore);
+
+  // Expanded element (already created)
+  if (expandedEl) {
+    flow.appendChild(expandedEl);
+  }
+
+  // Grid after
+  gridAfter = document.createElement('div');
+  gridAfter.className = 'grid-section';
+  for (let i = itemIndex + 1; i < allGridItems.length; i++) {
+    gridAfter.appendChild(allGridItems[i]);
+  }
+  flow.appendChild(gridAfter);
+}
+
+// === Open / Close ===
 
 function openFromGrid(id) {
-  removeExpanded();
+  if (expandedEl) {
+    removeExpanded();
+  }
 
   expandedId = id;
   isEnlarged = false;
   history.replaceState(null, '', '#' + id);
 
-  const item = items.find(i => i.id === id);
+  const idx = getIdx();
+  const item = items[idx];
   if (!item) return;
 
-  lastClickedGridItem = gridContainer.querySelector(`[data-item-id="${id}"]`);
+  lastClickedGridItem = allGridItems[idx];
 
   if (item.type === 'image') {
     expandedEl = createExpandedImage(item);
@@ -1399,14 +1443,13 @@ function openFromGrid(id) {
     expandedEl = createExpandedText(item);
   }
 
-  // Insert after grid
-  gridContainer.after(expandedEl);
+  renderSplit(idx);
 
   requestAnimationFrame(() => {
-    expandedEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (expandedEl) expandedEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  if (item.type === 'image') preloadNeighbors(getIdx());
+  if (item.type === 'image') preloadNeighbors(idx);
 }
 
 function removeExpanded() {
@@ -1414,7 +1457,6 @@ function removeExpanded() {
     expandedEl.remove();
     expandedEl = null;
   }
-  lastClickedGridItem = null;
 }
 
 function closeExpanded() {
@@ -1422,11 +1464,14 @@ function closeExpanded() {
   removeExpanded();
   expandedId = null;
   isEnlarged = false;
+  lastClickedGridItem = null;
   history.replaceState(null, '', window.location.pathname);
+
+  renderFlat();
 
   if (scrollTarget) {
     requestAnimationFrame(() => {
-      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollTarget.scrollIntoView({ behavior: 'instant', block: 'center' });
     });
   }
 }
@@ -1542,20 +1587,20 @@ function navigateArrow(id) {
   isEnlarged = false;
   history.replaceState(null, '', '#' + id);
 
+  const idx = getIdx();
   const currentIsImage = expandedEl && expandedEl.classList.contains('expanded-photo');
   const nextIsImage = item.type === 'image';
 
-  // If type changes (image↔text), replace the expanded element
+  // If type changes (image↔text), rebuild expanded and re-split grid
   if (!nextIsImage || !currentIsImage) {
-    const oldEl = expandedEl;
+    removeExpanded();
     expandedEl = nextIsImage ? createExpandedImage(item) : createExpandedText(item);
-    if (oldEl) oldEl.replaceWith(expandedEl);
-    if (nextIsImage) preloadNeighbors(getIdx());
+    renderSplit(idx);
+    if (nextIsImage) preloadNeighbors(idx);
     return;
   }
 
-  // Image-to-image: crossfade
-  const idx = getIdx();
+  // Image-to-image: crossfade in place, then re-split grid around new position
   const stage = expandedEl.querySelector('.img-stage');
   const imgFront = expandedEl.querySelector('#img-front');
   const imgBack = expandedEl.querySelector('#img-back');
@@ -1588,6 +1633,9 @@ function navigateArrow(id) {
 
       rebindArrows(expandedEl, idx);
       preloadNeighbors(idx);
+
+      // Re-split grid so items shift correctly around the new expanded position
+      renderSplit(idx);
     }, 260);
   });
 }
@@ -1623,19 +1671,20 @@ document.addEventListener('keydown', (e) => {
 
 // === Init ===
 
-buildGrid();
+init();
 
 // Hash navigation on load
 const hash = window.location.hash.slice(1);
 if (hash && isDesktop()) {
-  const item = items.find(i => i.id === hash);
-  if (item) {
+  const idx = items.findIndex(i => i.id === hash);
+  if (idx !== -1) {
+    const item = items[idx];
     expandedId = item.id;
-    lastClickedGridItem = gridContainer.querySelector(`[data-item-id="${hash}"]`);
+    lastClickedGridItem = allGridItems[idx];
     expandedEl = item.type === 'image' ? createExpandedImage(item) : createExpandedText(item);
-    gridContainer.after(expandedEl);
+    renderSplit(idx);
     requestAnimationFrame(() => {
-      expandedEl.scrollIntoView({ block: 'start' });
+      if (expandedEl) expandedEl.scrollIntoView({ block: 'start' });
     });
   }
 }
