@@ -277,16 +277,21 @@ function navigateArrow(id) {
   const currentIsImage = expandedEl && expandedEl.classList.contains('expanded-photo');
   const nextIsImage = item.type === 'image';
 
-  // If type changes (image↔text), rebuild expanded and re-split grid
+  // If type changes (image↔text), replace expanded element in place (no re-split)
   if (!nextIsImage || !currentIsImage) {
-    removeExpanded();
+    const oldEl = expandedEl;
     expandedEl = nextIsImage ? createExpandedImage(item) : createExpandedText(item);
-    renderSplit(idx);
+    if (oldEl) {
+      oldEl.replaceWith(expandedEl);
+    }
+    requestAnimationFrame(() => {
+      expandedEl.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
     if (nextIsImage) preloadNeighbors(idx);
     return;
   }
 
-  // Image-to-image: crossfade in place, then re-split grid around new position
+  // Image-to-image: crossfade in place, NO re-split
   const stage = expandedEl.querySelector('.img-stage');
   const imgFront = expandedEl.querySelector('#img-front');
   const imgBack = expandedEl.querySelector('#img-back');
@@ -319,9 +324,6 @@ function navigateArrow(id) {
 
       rebindArrows(expandedEl, idx);
       preloadNeighbors(idx);
-
-      // Re-split grid so items shift correctly around the new expanded position
-      renderSplit(idx);
     }, 260);
   });
 }
