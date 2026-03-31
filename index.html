@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noimageindex">
+<title>fragments</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600&family=DM+Mono:wght@300;400&display=swap');
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #fff;
+  color: #000;
+  font-family: 'Space Grotesk', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+.site-header {
+  padding: 40px 40px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  min-height: 280px;
+  align-content: start;
+  flex-wrap: wrap;
+}
+
+.site-title {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.site-subtitle {
+  font-size: 16px;
+  font-weight: 300;
+  color: #666;
+  letter-spacing: 0.06em;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Grid */
+.flow { padding: 0 40px 40px; }
+
+.grid-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.grid-item { cursor: pointer; }
+
+.grid-item img {
+  width: 100%;
+  display: block;
+  transition: opacity 0.3s ease;
+  -webkit-user-drag: none;
+  user-select: none;
+  pointer-events: none;
+}
+
+.grid-item:hover img { opacity: 0.85; }
+
+.grid-item .meta {
+  font-size: 16px;
+  font-weight: 300;
+  color: #777;
+  letter-spacing: 0.02em;
+  margin-top: 8px;
+  padding-bottom: 2px;
+  transition: color 0.3s ease;
+  font-family: 'DM Mono', monospace;
+}
+
+.grid-item:hover .meta { color: #444; }
+
+/* === Text block in grid === */
+.grid-item.text-block {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 28px 24px;
+  min-height: 160px;
+  cursor: default;
+}
+
+.grid-item.text-block .text-content {
+  font-family: 'DM Mono', monospace;
+  font-size: 16px;
+  line-height: 1.65;
+  color: #444;
+  white-space: pre-line;
+}
+
+/* Expanded photo */
+.expanded-photo {
+  width: 100vw;
+  margin-left: -40px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 60px 80px;
+  opacity: 0;
+  animation: expandIn 0.35s ease forwards;
+  position: relative;
+}
+
+.close-btn {
+  position: absolute;
+  top: 24px;
+  right: 36px;
+  background: none;
+  border: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px;
+  font-weight: 300;
+  color: #777;
+  cursor: pointer;
+  transition: color 0.2s;
+  line-height: 1;
+  padding: 8px;
+  z-index: 10;
+}
+
+.close-btn:hover { color: #000; }
+
+.viewer-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+}
+
+.nav-arrow {
+  background: none;
+  border: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 32px;
+  font-weight: 300;
+  color: #777;
+  cursor: pointer;
+  padding: 24px 20px;
+  transition: color 0.2s;
+  flex-shrink: 0;
+  user-select: none;
+  line-height: 1;
+}
+
+.nav-arrow:hover { color: #000; }
+.nav-arrow:disabled { color: #ccc; cursor: default; }
+
+/* Image stage */
+.img-stage {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-in;
+}
+
+.img-stage.enlarged { cursor: zoom-out; }
+
+.img-stage img {
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  transition: opacity 0.25s ease, max-height 0.3s ease;
+}
+
+.img-stage .img-back {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+
+.img-stage.enlarged img { max-height: none; }
+
+/* Meta under expanded image */
+.meta-expanded {
+  font-size: 16px;
+  font-weight: 300;
+  color: #666;
+  letter-spacing: 0.02em;
+  margin-top: 20px;
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+}
+
+/* Detail block under expanded — title, description, link */
+.detail-block {
+  margin-top: 24px;
+  text-align: center;
+  max-width: 560px;
+}
+
+.detail-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  color: #222;
+  margin-bottom: 8px;
+}
+
+.detail-description {
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+  font-weight: 300;
+  color: #777;
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.detail-link {
+  font-family: 'DM Mono', monospace;
+  font-size: 14px;
+  color: #999;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.detail-link:hover { color: #333; }
+
+/* Expanded text block */
+.expanded-text {
+  width: 100vw;
+  margin-left: -40px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 80px;
+  min-height: 60vh;
+  opacity: 0;
+  animation: expandIn 0.35s ease forwards;
+  position: relative;
+}
+
+.expanded-text .close-btn {
+  position: absolute;
+  top: 24px;
+  right: 36px;
+}
+
+.expanded-text .text-content-large {
+  font-family: 'DM Mono', monospace;
+  font-size: 22px;
+  line-height: 1.7;
+  color: #222;
+  max-width: 600px;
+  white-space: pre-line;
+}
+
+@keyframes expandIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Share button */
+.share-btn {
+  background: none;
+  border: none;
+  color: #bbb;
+  cursor: pointer;
+  padding: 4px 8px;
+  margin-left: 8px;
+  vertical-align: middle;
+  transition: color 0.2s;
+  position: relative;
+}
+
+.share-btn:hover { color: #555; }
+.share-btn.copied { color: #000; }
+
+.share-btn.copied::after {
+  content: 'Copied';
+  position: absolute;
+  bottom: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-family: 'DM Mono', monospace;
+  color: #666;
+  white-space: nowrap;
+}
+
+/* Footer */
+.site-footer { padding: 80px 40px 40px; }
+.site-footer span { font-size: 16px; font-weight: 300; color: #888; letter-spacing: 0.03em; font-family: 'DM Mono', monospace; }
+.site-footer a { color: #666; text-decoration: none; transition: color 0.2s; }
+.site-footer a:hover { color: #000; }
+.footer-email { margin-top: 16px; }
+.footer-copy { margin-top: 40px; }
+.footer-notice { color: #aaa; margin-top: 6px; display: inline-block; }
+
+/* Breakpoints: 6 → 5 → 4 → 3 → 2 → 1 */
+@media (min-width: 2200px) { .grid-section { grid-template-columns: repeat(6, 1fr); gap: 16px; } }
+@media (min-width: 1800px) and (max-width: 2199px) { .grid-section { grid-template-columns: repeat(5, 1fr); gap: 18px; } }
+@media (min-width: 1400px) and (max-width: 1799px) { .grid-section { grid-template-columns: repeat(4, 1fr); gap: 18px; } }
+@media (max-width: 1399px) and (min-width: 1101px) { .grid-section { grid-template-columns: repeat(3, 1fr); gap: 20px; } }
+
+@media (max-width: 1100px) {
+  .grid-section { grid-template-columns: repeat(2, 1fr); gap: 16px; }
+  .flow { padding: 0 20px 20px; }
+  .site-header { padding: 24px 20px 0; min-height: 160px; }
+  .grid-item { cursor: default; }
+  .grid-item:hover img { opacity: 1; }
+  .grid-item.text-block { cursor: default; }
+  .site-footer { padding: 60px 20px 40px; }
+  .expanded-photo { padding: 40px 20px; margin-left: -20px; }
+  .expanded-text { padding: 60px 20px; margin-left: -20px; }
+}
+
+@media (max-width: 640px) {
+  .grid-section { grid-template-columns: 1fr; gap: 12px; }
+  .flow { padding: 0 16px 16px; }
+  .site-header { padding: 24px 16px 0; flex-direction: column; gap: 4px; min-height: 120px; }
+  .site-footer { padding: 48px 16px 32px; }
+  .grid-item.text-block { padding: 20px 16px; min-height: 100px; }
+  .grid-item.text-block .text-content { font-size: 15px; }
+}
+
+/* Animation */
+.grid-item {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: fadeUp 0.45s ease forwards;
+}
+
+@keyframes fadeUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Copy protection */
+img {
+  -webkit-user-drag: none;
+  user-select: none;
+}
+
+</style>
+</head>
+<body>
+<header class="site-header">
+  <span class="site-title">fragments</span>
+  <span class="site-subtitle">dmitrii kremenskii</span>
+</header>
+<div class="flow" id="flow"></div>
+<footer class="site-footer">
+  <div class="footer-email"><span><a href="mailto:hi@kremenskii.art">hi@kremenskii.art</a></span></div>
+  <div class="footer-copy">
+    <span>&copy; Dmitrii Kremenskii. All rights reserved.</span><br>
+    <span class="footer-notice">No image may be reproduced without written permission.</span>
+  </div>
+</footer>
+<script>
+const items = [
+  {
+    "type": "image",
+    "id": "11-4097",
+    "thumb": "photos/thumb/IMG_4097.jpg",
+    "full": "photos/full/IMG_4097.jpg"
+  },
+  {
+    "type": "image",
+    "id": "95-face",
+    "thumb": "photos/thumb/faces-marker (80).jpg",
+    "full": "photos/full/faces-marker (80).jpg"
+  },
+  {
+    "type": "image",
+    "id": "30-face",
+    "thumb": "photos/thumb/faces-marker (24).jpg",
+    "full": "photos/full/faces-marker (24).jpg"
+  },
+  {
+    "type": "image",
+    "id": "aa-4151",
+    "thumb": "photos/thumb/IMG_4151.jpg",
+    "full": "photos/full/IMG_4151.jpg"
+  },
+  {
+    "type": "image",
+    "id": "21-1835",
+    "thumb": "photos/thumb/IMG_1835.jpg",
+    "full": "photos/full/IMG_1835.jpg"
+  },
+  {
+    "type": "image",
+    "id": "a0-2241",
+    "thumb": "photos/thumb/IMG_2241.jpg",
+    "full": "photos/full/IMG_2241.jpg"
+  },
+  {
+    "type": "image",
+    "id": "2c-face",
+    "thumb": "photos/thumb/faces-marker (55).jpg",
+    "full": "photos/full/faces-marker (55).jpg"
+  },
+  {
+    "type": "image",
+    "id": "ed-2293",
+    "thumb": "photos/thumb/IMG_2293.jpg",
+    "full": "photos/full/IMG_2293.jpg"
+  },
+  {
+    "type": "image",
+    "id": "cd-face",
+    "thumb": "photos/thumb/faces-marker (71).jpg",
+    "full": "photos/full/faces-marker (71).jpg"
+  },
+  {
+    "type": "image",
+    "id": "9d-face",
+    "thumb": "photos/thumb/faces-marker (73).jpg",
+    "full": "photos/full/faces-marker (73).jpg"
+  },
+  {
+    "type": "image",
+    "id": "1b-1824",
+    "thumb": "photos/thumb/IMG_1824.jpg",
+    "full": "photos/full/IMG_1824.jpg"
+  },
+  {
+    "type": "text",
+    "id": "d8-copy",
+    "text": "Different ways of being temporary."
+  },
+  {
+    "type": "image",
+    "id": "28-1227",
+    "thumb": "photos/thumb/IMG_1227.jpg",
+    "full": "photos/full/IMG_1227.jpg"
+  },
+  {
+    "type": "image",
+    "id": "98-face",
+    "thumb": "photos/thumb/faces-marker (65).jpg",
+    "full": "photos/full/faces-marker (65).jpg"
+  },
+  {
+    "type": "image",
+    "id": "21-4056",
+    "thumb": "photos/thumb/IMG_4056.jpg",
+    "full": "photos/full/IMG_4056.jpg"
+  },
+  {
+    "type": "image",
+    "id": "e6-4041",
+    "thumb": "photos/thumb/IMG_4041.jpg",
+    "full": "photos/full/IMG_4041.jpg"
+  },
+  {
+    "type": "image",
+    "id": "50-face",
+    "thumb": "photos/thumb/faces-marker (11).jpg",
+    "full": "photos/full/faces-marker (11).jpg"
+  },
+  {
+    "type": "image",
+    "id": "b8-face",
+    "thumb": "photos/thumb/faces-marker (56).jpg",
+    "full": "photos/full/faces-marker (56).jpg"
+  },
+  {
+    "type": "image",
+    "id": "67-face",
+    "thumb": "photos/thumb/faces-marker (5).jpg",
+    "full": "photos/full/faces-marker (5).jpg"
+  },
+  {
+    "type": "image",
+    "id": "1e-3460",
+    "thumb": "photos/thumb/IMG_3460.jpg",
+    "full": "photos/full/IMG_3460.jpg"
+  },
+  {
+    "type": "image",
+    "id": "b0-4182",
+    "thumb": "photos/thumb/IMG_4182.jpg",
+    "full": "photos/full/IMG_4182.jpg"
+  },
+  {
+    "type": "image",
+    "id": "b1-face",
+    "thumb": "photos/thumb/faces-marker (12).jpg",
+    "full": "photos/full/faces-marker (12).jpg"
+  },
+  {
+    "type": "image",
+    "id": "44-face",
+    "thumb": "photos/thumb/faces-marker (84).jpg",
+    "full": "photos/full/faces-marker (84).jpg"
+  },
+  {
+    "type": "image",
+    "id": "22-4042",
+    "thumb": "photos/thumb/IMG_4042.jpg",
+    "full": "photos/full/IMG_4042.jpg"
+  },
+  {
+    "type": "image",
+    "id": "d6-2297",
+    "thumb": "photos/thumb/IMG_2297.jpg",
+    "full": "photos/full/IMG_2297.jpg"
+  },
+  {
+    "type": "image",
+    "id": "fb-face",
+    "thumb": "photos/thumb/faces-marker (9).jpg",
+    "full": "photos/full/faces-marker (9).jpg"
+  },
+  {
+    "type": "image",
+    "id": "1f-face",
+    "thumb": "photos/thumb/faces-marker (16).jpg",
+    "full": "photos/full/faces-marker (16).jpg"
+  },
+  {
+    "type": "image",
+    "id": "0a-face",
+    "thumb": "photos/thumb/faces-marker (66).jpg",
+    "full": "photos/full/faces-marker (66).jpg"
+  },
+  {
+    "type": "image",
+    "id": "01-1833",
+    "thumb": "photos/thumb/IMG_1833.jpg",
+    "full": "photos/full/IMG_1833.jpg"
+  },
+  {
+    "type": "image",
+    "id": "48-face",
+    "thumb": "photos/thumb/faces-marker (76).jpg",
+    "full": "photos/full/faces-marker (76).jpg"
+  },
+  {
+    "type": "image",
+    "id": "d6-face",
+    "thumb": "photos/thumb/faces-marker (77).jpg",
+    "full": "photos/full/faces-marker (77).jpg"
+  },
+  {
+    "type": "image",
+    "id": "2d-face",
+    "thumb": "photos/thumb/faces-marker (2).jpg",
+    "full": "photos/full/faces-marker (2).jpg"
+  },
+  {
+    "type": "image",
+    "id": "44-3866",
+    "thumb": "photos/thumb/IMG_3866.jpg",
+    "full": "photos/full/IMG_3866.jpg"
+  },
+  {
+    "type": "image",
+    "id": "03-face",
+    "thumb": "photos/thumb/faces-marker (20).jpg",
+    "full": "photos/full/faces-marker (20).jpg"
+  },
+  {
+    "type": "image",
+    "id": "eb-1667",
+    "thumb": "photos/thumb/IMG_1667.jpg",
+    "full": "photos/full/IMG_1667.jpg"
+  },
+  {
+    "type": "image",
+    "id": "d9-face",
+    "thumb": "photos/thumb/faces-marker (68).jpg",
+    "full": "photos/full/faces-marker (68).jpg"
+  },
+  {
+    "type": "image",
+    "id": "3c-4381",
+    "thumb": "photos/thumb/IMG_4381.jpg",
+    "full": "photos/full/IMG_4381.jpg"
+  },
+  {
+    "type": "image",
+    "id": "7c-4136",
+    "thumb": "photos/thumb/IMG_4136.jpg",
+    "full": "photos/full/IMG_4136.jpg"
+  },
+  {
+    "type": "image",
+    "id": "42-face",
+    "thumb": "photos/thumb/faces-marker (34).jpg",
+    "full": "photos/full/faces-marker (34).jpg"
+  },
+  {
+    "type": "image",
+    "id": "d1-2203",
+    "thumb": "photos/thumb/IMG_2203.jpg",
+    "full": "photos/full/IMG_2203.jpg"
+  },
+  {
+    "type": "image",
+    "id": "3a-4063",
+    "thumb": "photos/thumb/IMG_4063.jpg",
+    "full": "photos/full/IMG_4063.jpg"
+  },
+  {
+    "type": "image",
+    "id": "2f-3406",
+    "thumb": "photos/thumb/IMG_3406.jpg",
+    "full": "photos/full/IMG_3406.jpg"
+  },
+  {
+    "type": "image",
+    "id": "9e-face",
+    "thumb": "photos/thumb/faces-marker (18).jpg",
+    "full": "photos/full/faces-marker (18).jpg"
+  },
+  {
+    "type": "image",
+    "id": "8c-face",
+    "thumb": "photos/thumb/faces-marker (4).jpg",
+    "full": "photos/full/faces-marker (4).jpg"
+  },
+  {
+    "type": "image",
+    "id": "2e-4045",
+    "thumb": "photos/thumb/IMG_4045.jpg",
+    "full": "photos/full/IMG_4045.jpg"
+  },
+  {
+    "type": "image",
+    "id": "88-2290",
+    "thumb": "photos/thumb/IMG_2290.jpg",
+    "full": "photos/full/IMG_2290.jpg"
+  },
+  {
+    "type": "image",
+    "id": "a6-4053",
+    "thumb": "photos/thumb/IMG_4053.jpg",
+    "full": "photos/full/IMG_4053.jpg"
+  },
+  {
+    "type": "image",
+    "id": "2c-face",
+    "thumb": "photos/thumb/faces-marker (10).jpg",
+    "full": "photos/full/faces-marker (10).jpg"
+  },
+  {
+    "type": "image",
+    "id": "75-face",
+    "thumb": "photos/thumb/faces-marker (15).jpg",
+    "full": "photos/full/faces-marker (15).jpg"
+  },
+  {
+    "type": "image",
+    "id": "90-6866",
+    "thumb": "photos/thumb/IMG_6866.jpg",
+    "full": "photos/full/IMG_6866.jpg"
+  },
+  {
+    "type": "image",
+    "id": "fe-2243",
+    "thumb": "photos/thumb/IMG_2243.jpg",
+    "full": "photos/full/IMG_2243.jpg"
+  },
+  {
+    "type": "image",
+    "id": "46-face",
+    "thumb": "photos/thumb/faces-marker (13).jpg",
+    "full": "photos/full/faces-marker (13).jpg"
+  },
+  {
+    "type": "image",
+    "id": "9f-6864",
+    "thumb": "photos/thumb/IMG_6864.jpg",
+    "full": "photos/full/IMG_6864.jpg"
+  },
+  {
+    "type": "image",
+    "id": "7f-6867",
+    "thumb": "photos/thumb/IMG_6867.jpg",
+    "full": "photos/full/IMG_6867.jpg"
+  },
+  {
+    "type": "image",
+    "id": "f2-6862",
+    "thumb": "photos/thumb/IMG_6862.jpg",
+    "full": "photos/full/IMG_6862.jpg"
+  },
+  {
+    "type": "image",
+    "id": "f7-face",
+    "thumb": "photos/thumb/faces-marker (62).jpg",
+    "full": "photos/full/faces-marker (62).jpg"
+  },
+  {
+    "type": "image",
+    "id": "c1-face",
+    "thumb": "photos/thumb/faces-marker (75).jpg",
+    "full": "photos/full/faces-marker (75).jpg"
+  },
+  {
+    "type": "image",
+    "id": "fb-2247",
+    "thumb": "photos/thumb/IMG_2247.jpg",
+    "full": "photos/full/IMG_2247.jpg"
+  },
+  {
+    "type": "image",
+    "id": "7d-0132",
+    "thumb": "photos/thumb/IMG_0132.jpg",
+    "full": "photos/full/IMG_0132.jpg"
+  },
+  {
+    "type": "image",
+    "id": "b6-face",
+    "thumb": "photos/thumb/faces-marker (64).jpg",
+    "full": "photos/full/faces-marker (64).jpg"
+  },
+  {
+    "type": "image",
+    "id": "48-face",
+    "thumb": "photos/thumb/faces-marker (58).jpg",
+    "full": "photos/full/faces-marker (58).jpg"
+  },
+  {
+    "type": "image",
+    "id": "a9-1826",
+    "thumb": "photos/thumb/IMG_1826.jpg",
+    "full": "photos/full/IMG_1826.jpg"
+  },
+  {
+    "type": "image",
+    "id": "63-face",
+    "thumb": "photos/thumb/faces-marker (88).jpg",
+    "full": "photos/full/faces-marker (88).jpg"
+  },
+  {
+    "type": "image",
+    "id": "cb-1665",
+    "thumb": "photos/thumb/IMG_1665.jpg",
+    "full": "photos/full/IMG_1665.jpg"
+  },
+  {
+    "type": "image",
+    "id": "14-face",
+    "thumb": "photos/thumb/faces-marker (72).jpg",
+    "full": "photos/full/faces-marker (72).jpg"
+  },
+  {
+    "type": "image",
+    "id": "f0-face",
+    "thumb": "photos/thumb/faces-marker (81).jpg",
+    "full": "photos/full/faces-marker (81).jpg"
+  },
+  {
+    "type": "image",
+    "id": "80-1837",
+    "thumb": "photos/thumb/IMG_1837.jpg",
+    "full": "photos/full/IMG_1837.jpg"
+  },
+  {
+    "type": "image",
+    "id": "45-4454",
+    "thumb": "photos/thumb/IMG_4454.jpg",
+    "full": "photos/full/IMG_4454.jpg"
+  },
+  {
+    "type": "image",
+    "id": "ef-2193",
+    "thumb": "photos/thumb/IMG_2193.jpg",
+    "full": "photos/full/IMG_2193.jpg"
+  },
+  {
+    "type": "image",
+    "id": "57-1680",
+    "thumb": "photos/thumb/IMG_1680.jpg",
+    "full": "photos/full/IMG_1680.jpg"
+  },
+  {
+    "type": "image",
+    "id": "04-4111",
+    "thumb": "photos/thumb/IMG_4111.jpg",
+    "full": "photos/full/IMG_4111.jpg"
+  },
+  {
+    "type": "image",
+    "id": "8f-face",
+    "thumb": "photos/thumb/faces-marker (15)-1.jpg",
+    "full": "photos/full/faces-marker (15)-1.jpg"
+  },
+  {
+    "type": "image",
+    "id": "5c-4092",
+    "thumb": "photos/thumb/IMG_4092.jpg",
+    "full": "photos/full/IMG_4092.jpg"
+  },
+  {
+    "type": "image",
+    "id": "f0-face",
+    "thumb": "photos/thumb/faces-marker (22).jpg",
+    "full": "photos/full/faces-marker (22).jpg"
+  },
+  {
+    "type": "image",
+    "id": "73-1804",
+    "thumb": "photos/thumb/IMG_1804.jpg",
+    "full": "photos/full/IMG_1804.jpg"
+  },
+  {
+    "type": "text",
+    "id": "f8-copy",
+    "text": "Разные способы быть временным."
+  },
+  {
+    "type": "image",
+    "id": "7c-face",
+    "thumb": "photos/thumb/faces-marker (1).jpg",
+    "full": "photos/full/faces-marker (1).jpg"
+  },
+  {
+    "type": "image",
+    "id": "b2-face",
+    "thumb": "photos/thumb/faces-marker (7).jpg",
+    "full": "photos/full/faces-marker (7).jpg"
+  },
+  {
+    "type": "image",
+    "id": "e3-face",
+    "thumb": "photos/thumb/faces-marker (3).jpg",
+    "full": "photos/full/faces-marker (3).jpg"
+  },
+  {
+    "type": "image",
+    "id": "89-6868",
+    "thumb": "photos/thumb/IMG_6868-1.jpg",
+    "full": "photos/full/IMG_6868-1.jpg"
+  },
+  {
+    "type": "image",
+    "id": "8a-1216",
+    "thumb": "photos/thumb/IMG_1216.jpg",
+    "full": "photos/full/IMG_1216.jpg"
+  },
+  {
+    "type": "image",
+    "id": "8e-3709",
+    "thumb": "photos/thumb/IMG_3709.jpg",
+    "full": "photos/full/IMG_3709.jpg"
+  },
+  {
+    "type": "image",
+    "id": "5f-face",
+    "thumb": "photos/thumb/faces-marker (63).jpg",
+    "full": "photos/full/faces-marker (63).jpg"
+  },
+  {
+    "type": "image",
+    "id": "84-3407",
+    "thumb": "photos/thumb/IMG_3407.jpg",
+    "full": "photos/full/IMG_3407.jpg"
+  },
+  {
+    "type": "image",
+    "id": "0b-3602",
+    "thumb": "photos/thumb/IMG_3602.jpg",
+    "full": "photos/full/IMG_3602.jpg"
+  },
+  {
+    "type": "image",
+    "id": "64-face",
+    "thumb": "photos/thumb/faces-marker (61).jpg",
+    "full": "photos/full/faces-marker (61).jpg"
+  },
+  {
+    "type": "image",
+    "id": "a3-2199",
+    "thumb": "photos/thumb/IMG_2199.jpg",
+    "full": "photos/full/IMG_2199.jpg"
+  },
+  {
+    "type": "image",
+    "id": "14-face",
+    "thumb": "photos/thumb/faces-marker (90).jpg",
+    "full": "photos/full/faces-marker (90).jpg"
+  },
+  {
+    "type": "image",
+    "id": "f5-3600",
+    "thumb": "photos/thumb/IMG_3600.jpg",
+    "full": "photos/full/IMG_3600.jpg"
+  },
+  {
+    "type": "image",
+    "id": "1d-face",
+    "thumb": "photos/thumb/faces-marker (86).jpg",
+    "full": "photos/full/faces-marker (86).jpg"
+  },
+  {
+    "type": "image",
+    "id": "f0-face",
+    "thumb": "photos/thumb/faces-marker (60).jpg",
+    "full": "photos/full/faces-marker (60).jpg"
+  },
+  {
+    "type": "image",
+    "id": "e6-face",
+    "thumb": "photos/thumb/faces-marker (19).jpg",
+    "full": "photos/full/faces-marker (19).jpg"
+  },
+  {
+    "type": "image",
+    "id": "03-1825",
+    "thumb": "photos/thumb/IMG_1825.jpg",
+    "full": "photos/full/IMG_1825.jpg"
+  },
+  {
+    "type": "image",
+    "id": "f5-2271",
+    "thumb": "photos/thumb/IMG_2271.jpg",
+    "full": "photos/full/IMG_2271.jpg"
+  },
+  {
+    "type": "image",
+    "id": "11-4091",
+    "thumb": "photos/thumb/IMG_4091.jpg",
+    "full": "photos/full/IMG_4091.jpg"
+  },
+  {
+    "type": "image",
+    "id": "95-4453",
+    "thumb": "photos/thumb/IMG_4453.jpg",
+    "full": "photos/full/IMG_4453.jpg"
+  },
+  {
+    "type": "image",
+    "id": "38-face",
+    "thumb": "photos/thumb/faces-marker (89).jpg",
+    "full": "photos/full/faces-marker (89).jpg"
+  },
+  {
+    "type": "image",
+    "id": "9d-face",
+    "thumb": "photos/thumb/faces-marker (6).jpg",
+    "full": "photos/full/faces-marker (6).jpg"
+  },
+  {
+    "type": "image",
+    "id": "64-4116",
+    "thumb": "photos/thumb/IMG_4116.jpg",
+    "full": "photos/full/IMG_4116.jpg"
+  },
+  {
+    "type": "image",
+    "id": "ca-face",
+    "thumb": "photos/thumb/faces-marker (67).jpg",
+    "full": "photos/full/faces-marker (67).jpg"
+  },
+  {
+    "type": "image",
+    "id": "20-6865",
+    "thumb": "photos/thumb/IMG_6865.jpg",
+    "full": "photos/full/IMG_6865.jpg"
+  },
+  {
+    "type": "image",
+    "id": "4b-5974",
+    "thumb": "photos/thumb/IMG_5974.jpg",
+    "full": "photos/full/IMG_5974.jpg"
+  },
+  {
+    "type": "image",
+    "id": "68-4187",
+    "thumb": "photos/thumb/IMG_4187.jpg",
+    "full": "photos/full/IMG_4187.jpg"
+  },
+  {
+    "type": "image",
+    "id": "30-1666",
+    "thumb": "photos/thumb/IMG_1666.jpg",
+    "full": "photos/full/IMG_1666.jpg"
+  },
+  {
+    "type": "image",
+    "id": "f3-face",
+    "thumb": "photos/thumb/faces-marker (74).jpg",
+    "full": "photos/full/faces-marker (74).jpg"
+  },
+  {
+    "type": "image",
+    "id": "3a-2248",
+    "thumb": "photos/thumb/IMG_2248.jpg",
+    "full": "photos/full/IMG_2248.jpg"
+  },
+  {
+    "type": "image",
+    "id": "a9-face",
+    "thumb": "photos/thumb/faces-marker (69).jpg",
+    "full": "photos/full/faces-marker (69).jpg"
+  },
+  {
+    "type": "image",
+    "id": "3a-4094",
+    "thumb": "photos/thumb/IMG_4094.jpg",
+    "full": "photos/full/IMG_4094.jpg"
+  },
+  {
+    "type": "image",
+    "id": "58-face",
+    "thumb": "photos/thumb/faces-marker (70).jpg",
+    "full": "photos/full/faces-marker (70).jpg"
+  },
+  {
+    "type": "image",
+    "id": "66-face",
+    "thumb": "photos/thumb/faces-marker (36).jpg",
+    "full": "photos/full/faces-marker (36).jpg"
+  },
+  {
+    "type": "image",
+    "id": "47-face",
+    "thumb": "photos/thumb/faces-marker (8).jpg",
+    "full": "photos/full/faces-marker (8).jpg"
+  },
+  {
+    "type": "image",
+    "id": "b0-3708",
+    "thumb": "photos/thumb/IMG_3708.jpg",
+    "full": "photos/full/IMG_3708.jpg"
+  },
+  {
+    "type": "image",
+    "id": "25-face",
+    "thumb": "photos/thumb/faces-marker (57).jpg",
+    "full": "photos/full/faces-marker (57).jpg"
+  },
+  {
+    "type": "image",
+    "id": "54-4093",
+    "thumb": "photos/thumb/IMG_4093.jpg",
+    "full": "photos/full/IMG_4093.jpg"
+  },
+  {
+    "type": "image",
+    "id": "07-4100",
+    "thumb": "photos/thumb/IMG_4100.jpg",
+    "full": "photos/full/IMG_4100.jpg"
+  },
+  {
+    "type": "image",
+    "id": "cd-4104",
+    "thumb": "photos/thumb/IMG_4104.jpg",
+    "full": "photos/full/IMG_4104.jpg"
+  },
+  {
+    "type": "image",
+    "id": "44-2287",
+    "thumb": "photos/thumb/IMG_2287.jpg",
+    "full": "photos/full/IMG_2287.jpg"
+  },
+  {
+    "type": "image",
+    "id": "7b-4388",
+    "thumb": "photos/thumb/IMG_4388.jpg",
+    "full": "photos/full/IMG_4388.jpg"
+  },
+  {
+    "type": "image",
+    "id": "ed-face",
+    "thumb": "photos/thumb/faces-marker (83).jpg",
+    "full": "photos/full/faces-marker (83).jpg"
+  },
+  {
+    "type": "image",
+    "id": "f4-1832",
+    "thumb": "photos/thumb/IMG_1832.jpg",
+    "full": "photos/full/IMG_1832.jpg"
+  },
+  {
+    "type": "image",
+    "id": "cd-4095",
+    "thumb": "photos/thumb/IMG_4095.jpg",
+    "full": "photos/full/IMG_4095.jpg"
+  },
+  {
+    "type": "image",
+    "id": "36-1791",
+    "thumb": "photos/thumb/IMG_1791.jpg",
+    "full": "photos/full/IMG_1791.jpg"
+  },
+  {
+    "type": "text",
+    "id": "54-copy",
+    "text": "Verschiedene Arten, vorübergehend zu sein."
+  },
+  {
+    "type": "image",
+    "id": "24-1669",
+    "thumb": "photos/thumb/IMG_1669.jpg",
+    "full": "photos/full/IMG_1669.jpg"
+  },
+  {
+    "type": "image",
+    "id": "4a-face",
+    "thumb": "photos/thumb/faces-marker (14).jpg",
+    "full": "photos/full/faces-marker (14).jpg"
+  },
+  {
+    "type": "image",
+    "id": "40-face",
+    "thumb": "photos/thumb/faces-marker (35).jpg",
+    "full": "photos/full/faces-marker (35).jpg"
+  },
+  {
+    "type": "image",
+    "id": "89-5966",
+    "thumb": "photos/thumb/IMG_5966.jpg",
+    "full": "photos/full/IMG_5966.jpg"
+  },
+  {
+    "type": "image",
+    "id": "a4-4105",
+    "thumb": "photos/thumb/IMG_4105.jpg",
+    "full": "photos/full/IMG_4105.jpg"
+  },
+  {
+    "type": "image",
+    "id": "00-3603",
+    "thumb": "photos/thumb/IMG_3603.jpg",
+    "full": "photos/full/IMG_3603.jpg"
+  },
+  {
+    "type": "image",
+    "id": "67-2242",
+    "thumb": "photos/thumb/IMG_2242.jpg",
+    "full": "photos/full/IMG_2242.jpg"
+  },
+  {
+    "type": "image",
+    "id": "18-face",
+    "thumb": "photos/thumb/faces-marker (21).jpg",
+    "full": "photos/full/faces-marker (21).jpg"
+  },
+  {
+    "type": "image",
+    "id": "da-1798",
+    "thumb": "photos/thumb/IMG_1798.jpg",
+    "full": "photos/full/IMG_1798.jpg"
+  },
+  {
+    "type": "image",
+    "id": "17-2201",
+    "thumb": "photos/thumb/IMG_2201.jpg",
+    "full": "photos/full/IMG_2201.jpg"
+  },
+  {
+    "type": "image",
+    "id": "e4-face",
+    "thumb": "photos/thumb/faces-marker (85).jpg",
+    "full": "photos/full/faces-marker (85).jpg"
+  },
+  {
+    "type": "image",
+    "id": "04-face",
+    "thumb": "photos/thumb/faces-marker (93).jpg",
+    "full": "photos/full/faces-marker (93).jpg"
+  },
+  {
+    "type": "image",
+    "id": "e7-face",
+    "thumb": "photos/thumb/faces-marker (32).jpg",
+    "full": "photos/full/faces-marker (32).jpg"
+  },
+  {
+    "type": "image",
+    "id": "0f-3605",
+    "thumb": "photos/thumb/IMG_3605.jpg",
+    "full": "photos/full/IMG_3605.jpg"
+  },
+  {
+    "type": "image",
+    "id": "30-face",
+    "thumb": "photos/thumb/faces-marker (87).jpg",
+    "full": "photos/full/faces-marker (87).jpg"
+  },
+  {
+    "type": "image",
+    "id": "8d-face",
+    "thumb": "photos/thumb/faces-marker (92).jpg",
+    "full": "photos/full/faces-marker (92).jpg"
+  },
+  {
+    "type": "image",
+    "id": "fe-face",
+    "thumb": "photos/thumb/faces-marker (82).jpg",
+    "full": "photos/full/faces-marker (82).jpg"
+  },
+  {
+    "type": "image",
+    "id": "74-1827",
+    "thumb": "photos/thumb/IMG_1827.jpg",
+    "full": "photos/full/IMG_1827.jpg"
+  },
+  {
+    "type": "image",
+    "id": "6e-4125",
+    "thumb": "photos/thumb/IMG_4125.jpg",
+    "full": "photos/full/IMG_4125.jpg"
+  },
+  {
+    "type": "image",
+    "id": "35-4124",
+    "thumb": "photos/thumb/IMG_4124.jpg",
+    "full": "photos/full/IMG_4124.jpg"
+  },
+  {
+    "type": "image",
+    "id": "25-face",
+    "thumb": "photos/thumb/faces-marker (91).jpg",
+    "full": "photos/full/faces-marker (91).jpg"
+  },
+  {
+    "type": "image",
+    "id": "33-3651",
+    "thumb": "photos/thumb/IMG_3651.jpg",
+    "full": "photos/full/IMG_3651.jpg"
+  },
+  {
+    "type": "image",
+    "id": "ec-1830",
+    "thumb": "photos/thumb/IMG_1830.jpg",
+    "full": "photos/full/IMG_1830.jpg"
+  },
+  {
+    "type": "image",
+    "id": "f9-5991",
+    "thumb": "photos/thumb/IMG_5991.jpg",
+    "full": "photos/full/IMG_5991.jpg"
+  },
+  {
+    "type": "image",
+    "id": "77-6863",
+    "thumb": "photos/thumb/IMG_6863.jpg",
+    "full": "photos/full/IMG_6863.jpg"
+  },
+  {
+    "type": "image",
+    "id": "0c-3604",
+    "thumb": "photos/thumb/IMG_3604.jpg",
+    "full": "photos/full/IMG_3604.jpg"
+  },
+  {
+    "type": "image",
+    "id": "54-1215",
+    "thumb": "photos/thumb/IMG_1215.jpg",
+    "full": "photos/full/IMG_1215.jpg"
+  },
+  {
+    "type": "image",
+    "id": "2c-face",
+    "thumb": "photos/thumb/faces-marker (17).jpg",
+    "full": "photos/full/faces-marker (17).jpg"
+  },
+  {
+    "type": "image",
+    "id": "e4-face",
+    "thumb": "photos/thumb/faces-marker (33).jpg",
+    "full": "photos/full/faces-marker (33).jpg"
+  },
+  {
+    "type": "image",
+    "id": "68-4101",
+    "thumb": "photos/thumb/IMG_4101.jpg",
+    "full": "photos/full/IMG_4101.jpg"
+  }
+];
+const flow = document.getElementById('flow');
+let expandedId = null;
+let isEnlarged = false;
+const preloadCache = {};
+
+function getIdx() {
+  return items.findIndex(i => i.id === expandedId);
+}
+
+function preloadImage(src) {
+  if (preloadCache[src]) return preloadCache[src];
+  const promise = new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(src);
+    img.onerror = () => resolve(src);
+    img.src = src;
+  });
+  preloadCache[src] = promise;
+  return promise;
+}
+
+function preloadNeighbors(idx) {
+  [-1, 1].forEach(d => {
+    const n = items[idx + d];
+    if (n && n.type === 'image') preloadImage(n.full);
+  });
+}
+
+function openFromGrid(id) {
+  expandedId = id;
+  isEnlarged = false;
+  history.replaceState(null, '', '#' + id);
+  render();
+  requestAnimationFrame(() => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  const idx = getIdx();
+  if (items[idx] && items[idx].type === 'image') preloadNeighbors(idx);
+}
+
+function navigateArrow(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  expandedId = id;
+  isEnlarged = false;
+  history.replaceState(null, '', '#' + id);
+
+  if (item.type === 'text') {
+    render();
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+    return;
+  }
+
+  const idx = getIdx();
+  const stage = document.querySelector('.img-stage');
+  const imgFront = document.getElementById('img-front');
+  const imgBack = document.getElementById('img-back');
+
+  if (!imgFront || !imgBack || !stage) {
+    render();
+    requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return;
+  }
+
+  stage.classList.remove('enlarged');
+  preloadImage(item.full).then(() => {
+    imgBack.src = item.full;
+    imgBack.style.opacity = '1';
+    imgFront.style.opacity = '0';
+    setTimeout(() => {
+      imgFront.src = item.full;
+      imgFront.style.opacity = '1';
+      imgBack.style.opacity = '0';
+
+      const expanded = document.querySelector('.expanded-photo');
+      if (expanded) expanded.id = item.id;
+
+      // Update meta
+      const meta = document.querySelector('.meta-expanded');
+      if (meta) {
+        let metaHtml = item.meta || '';
+        metaHtml += shareButtonHtml();
+        meta.innerHTML = metaHtml;
+        bindShareBtn(meta, item.id);
+      }
+
+      // Update detail block
+      const detailBlock = document.querySelector('.detail-block');
+      if (detailBlock) {
+        detailBlock.innerHTML = buildDetailHtml(item);
+        detailBlock.style.display = hasDetail(item) ? 'block' : 'none';
+      }
+
+      const prevBtn = document.querySelector('.nav-arrow[data-dir="prev"]');
+      const nextBtn = document.querySelector('.nav-arrow[data-dir="next"]');
+      if (prevBtn) prevBtn.disabled = idx <= 0;
+      if (nextBtn) nextBtn.disabled = idx >= items.length - 1;
+      rebindArrows(idx);
+      preloadNeighbors(idx);
+    }, 260);
+  });
+}
+
+function rebindArrows(idx) {
+  const prevBtn = document.querySelector('.nav-arrow[data-dir="prev"]');
+  const nextBtn = document.querySelector('.nav-arrow[data-dir="next"]');
+  if (prevBtn) {
+    const n = prevBtn.cloneNode(true);
+    prevBtn.replaceWith(n);
+    n.disabled = idx <= 0;
+    if (idx > 0) n.addEventListener('click', (e) => { e.stopPropagation(); navigateArrow(items[idx - 1].id); });
+  }
+  if (nextBtn) {
+    const n = nextBtn.cloneNode(true);
+    nextBtn.replaceWith(n);
+    n.disabled = idx >= items.length - 1;
+    if (idx < items.length - 1) n.addEventListener('click', (e) => { e.stopPropagation(); navigateArrow(items[idx + 1].id); });
+  }
+}
+
+function closeExpanded() {
+  expandedId = null;
+  isEnlarged = false;
+  history.replaceState(null, '', window.location.pathname);
+  render();
+}
+
+function isDesktop() {
+  return window.innerWidth > 1100;
+}
+
+function shareButtonHtml() {
+  return `
+    <button class="share-btn" title="Copy link">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    </button>`;
+}
+
+function bindShareBtn(container, id) {
+  const btn = container.querySelector('.share-btn');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const url = window.location.origin + window.location.pathname + '#' + id;
+    navigator.clipboard.writeText(url).then(() => {
+      btn.classList.add('copied');
+      btn.setAttribute('title', 'Copied!');
+      setTimeout(() => { btn.classList.remove('copied'); btn.setAttribute('title', 'Copy link'); }, 2000);
+    });
+  });
+}
+
+function hasDetail(item) {
+  return item.title || item.description || item.link;
+}
+
+function buildDetailHtml(item) {
+  if (!hasDetail(item)) return '';
+  let html = '';
+  if (item.title) html += `<div class="detail-title">${item.title}</div>`;
+  if (item.description) html += `<div class="detail-description">${item.description}</div>`;
+  if (item.link) html += `<a class="detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
+  return html;
+}
+
+function render() {
+  flow.innerHTML = '';
+
+  if (!isDesktop()) {
+    // Mobile/tablet: simple feed
+    const section = document.createElement('div');
+    section.className = 'grid-section';
+    items.forEach((item, i) => {
+      const el = makeGridItem(item, i);
+      section.appendChild(el);
+    });
+    flow.appendChild(section);
+    return;
+  }
+
+  // Desktop: interactive grid with inline expand
+  let gridItems = [];
+
+  function flushGrid() {
+    if (!gridItems.length) return;
+    const section = document.createElement('div');
+    section.className = 'grid-section';
+    gridItems.forEach((el, i) => { el.style.animationDelay = `${i * 0.035}s`; section.appendChild(el); });
+    flow.appendChild(section);
+    gridItems = [];
+  }
+
+  items.forEach((item) => {
+    if (item.id === expandedId) {
+      flushGrid();
+      if (item.type === 'image') {
+        buildExpanded(item);
+      } else {
+        buildExpandedText(item);
+      }
+    } else {
+      gridItems.push(makeGridItem(item, gridItems.length));
+    }
+  });
+  flushGrid();
+}
+
+function makeGridItem(item, index) {
+  const div = document.createElement('div');
+  div.className = 'grid-item' + (item.type === 'text' ? ' text-block' : '');
+  div.style.animationDelay = `${index * 0.035}s`;
+
+  if (item.type === 'image') {
+    const src = isDesktop() ? item.thumb : item.full;
+    div.innerHTML = `<img src="${src}" alt="${item.id}" loading="lazy">`;
+    if (isDesktop()) {
+      div.addEventListener('click', () => openFromGrid(item.id));
+    }
+  } else {
+    div.innerHTML = `<div class="text-content">${item.text}</div>`;
+    if (isDesktop()) {
+      div.style.cursor = 'pointer';
+      div.addEventListener('click', () => openFromGrid(item.id));
+    }
+  }
+
+  return div;
+}
+
+function buildExpanded(item) {
+  const idx = getIdx();
+  const hasPrev = idx > 0;
+  const hasNext = idx < items.length - 1;
+  const el = document.createElement('div');
+  el.className = 'expanded-photo';
+  el.id = item.id;
+
+  let metaHtml = (item.meta || '') + shareButtonHtml();
+  let detailHtml = hasDetail(item) ? `<div class="detail-block">${buildDetailHtml(item)}</div>` : '<div class="detail-block" style="display:none"></div>';
+
+  el.innerHTML = `
+    <button class="close-btn" title="Close">&times;</button>
+    <div class="viewer-row">
+      <button class="nav-arrow" ${!hasPrev ? 'disabled' : ''} data-dir="prev">&#8592;</button>
+      <div class="img-stage" id="img-stage">
+        <img id="img-front" src="${item.full}" alt="${item.id}">
+        <img id="img-back" class="img-back" src="" alt="">
+      </div>
+      <button class="nav-arrow" ${!hasNext ? 'disabled' : ''} data-dir="next">&#8594;</button>
+    </div>
+    <div class="meta-expanded">${metaHtml}</div>
+    ${detailHtml}
+  `;
+  flow.appendChild(el);
+  el.querySelector('.close-btn').addEventListener('click', (e) => { e.stopPropagation(); closeExpanded(); });
+  rebindArrows(idx);
+  bindShareBtn(el.querySelector('.meta-expanded'), item.id);
+
+  const stage = el.querySelector('#img-stage');
+  stage.addEventListener('click', (e) => {
+    e.stopPropagation();
+    isEnlarged = !isEnlarged;
+    stage.classList.toggle('enlarged', isEnlarged);
+  });
+  preloadNeighbors(idx);
+}
+
+function buildExpandedText(item) {
+  const idx = getIdx();
+  const hasPrev = idx > 0;
+  const hasNext = idx < items.length - 1;
+  const el = document.createElement('div');
+  el.className = 'expanded-text';
+  el.id = item.id;
+  el.innerHTML = `
+    <button class="close-btn" title="Close">&times;</button>
+    <div class="viewer-row">
+      <button class="nav-arrow" ${!hasPrev ? 'disabled' : ''} data-dir="prev">&#8592;</button>
+      <div class="text-content-large">${item.text}</div>
+      <button class="nav-arrow" ${!hasNext ? 'disabled' : ''} data-dir="next">&#8594;</button>
+    </div>
+  `;
+  flow.appendChild(el);
+  el.querySelector('.close-btn').addEventListener('click', (e) => { e.stopPropagation(); closeExpanded(); });
+  rebindArrows(idx);
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (!expandedId) return;
+  const idx = getIdx();
+  if (e.key === 'Escape') {
+    if (isEnlarged) { isEnlarged = false; const s = document.getElementById('img-stage'); if (s) s.classList.remove('enlarged'); }
+    else { closeExpanded(); }
+  } else if (e.key === 'ArrowLeft' && idx > 0) { navigateArrow(items[idx - 1].id); }
+  else if (e.key === 'ArrowRight' && idx < items.length - 1) { navigateArrow(items[idx + 1].id); }
+});
+
+// Hash navigation
+const hash = window.location.hash.slice(1);
+if (hash) {
+  const item = items.find(i => i.id === hash);
+  if (item && isDesktop()) expandedId = item.id;
+}
+render();
+if (hash) {
+  requestAnimationFrame(() => {
+    const el = document.getElementById(hash);
+    if (el) el.scrollIntoView({ block: 'start' });
+  });
+}
+
+// Copy protection
+document.addEventListener('contextmenu', (e) => {
+  if (e.target.tagName === 'IMG') e.preventDefault();
+});
+document.addEventListener('dragstart', (e) => {
+  if (e.target.tagName === 'IMG') e.preventDefault();
+});
+
+</script>
+</body>
+</html>
