@@ -2,6 +2,9 @@ const flow = document.getElementById('flow');
 let expandedId = null;
 let isEnlarged = false;
 const preloadCache = {};
+let gridContainer = null;
+let expandedEl = null;
+let lastClickedGridItem = null;
 
 function getIdx() {
   return items.findIndex(i => i.id === expandedId);
@@ -26,116 +29,95 @@ function preloadNeighbors(idx) {
   });
 }
 
-function openFromGrid(id) {
-  expandedId = id;
-  isEnlarged = false;
-  history.replaceState(null, '', '#' + id);
-  render();
-  requestAnimationFrame(() => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
-  const idx = getIdx();
-  if (items[idx] && items[idx].type === 'image') preloadNeighbors(idx);
-}
-
-function navigateArrow(id) {
-  const item = items.find(i => i.id === id);
-  if (!item) return;
-
-  expandedId = id;
-  isEnlarged = false;
-  history.replaceState(null, '', '#' + id);
-
-  if (item.type === 'text') {
-    render();
-    requestAnimationFrame(() => {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
-    return;
-  }
-
-  const idx = getIdx();
-  const stage = document.querySelector('.img-stage');
-  const imgFront = document.getElementById('img-front');
-  const imgBack = document.getElementById('img-back');
-
-  if (!imgFront || !imgBack || !stage) {
-    render();
-    requestAnimationFrame(() => {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
-    return;
-  }
-
-  stage.classList.remove('enlarged');
-  preloadImage(item.full).then(() => {
-    imgBack.src = item.full;
-    imgBack.style.opacity = '1';
-    imgFront.style.opacity = '0';
-    setTimeout(() => {
-      imgFront.src = item.full;
-      imgFront.style.opacity = '1';
-      imgBack.style.opacity = '0';
-
-      const expanded = document.querySelector('.expanded-photo');
-      if (expanded) expanded.id = item.id;
-
-      // Update meta
-      const meta = document.querySelector('.meta-expanded');
-      if (meta) {
-        let metaHtml = item.meta || '';
-        metaHtml += shareButtonHtml();
-        meta.innerHTML = metaHtml;
-        bindShareBtn(meta, item.id);
-      }
-
-      // Update detail block
-      const detailBlock = document.querySelector('.detail-block');
-      if (detailBlock) {
-        detailBlock.innerHTML = buildDetailHtml(item);
-        detailBlock.style.display = hasDetail(item) ? 'block' : 'none';
-      }
-
-      const prevBtn = document.querySelector('.nav-arrow[data-dir="prev"]');
-      const nextBtn = document.querySelector('.nav-arrow[data-dir="next"]');
-      if (prevBtn) prevBtn.disabled = idx <= 0;
-      if (nextBtn) nextBtn.disabled = idx >= items.length - 1;
-      rebindArrows(idx);
-      preloadNeighbors(idx);
-    }, 260);
-  });
-}
-
-function rebindArrows(idx) {
-  const prevBtn = document.querySelector('.nav-arrow[data-dir="prev"]');
-  const nextBtn = document.querySelector('.nav-arrow[data-dir="next"]');
-  if (prevBtn) {
-    const n = prevBtn.cloneNode(true);
-    prevBtn.replaceWith(n);
-    n.disabled = idx <= 0;
-    if (idx > 0) n.addEventListener('click', (e) => { e.stopPropagation(); navigateArrow(items[idx - 1].id); });
-  }
-  if (nextBtn) {
-    const n = nextBtn.cloneNode(true);
-    nextBtn.replaceWith(n);
-    n.disabled = idx >= items.length - 1;
-    if (idx < items.length - 1) n.addEventListener('click', (e) => { e.stopPropagation(); navigateArrow(items[idx + 1].id); });
-  }
-}
-
-function closeExpanded() {
-  expandedId = null;
-  isEnlarged = false;
-  history.replaceState(null, '', window.location.pathname);
-  render();
-}
-
 function isDesktop() {
   return window.innerWidth > 1100;
 }
+
+// === Build grid once, never destroy ===
+
+function buildGrid() {
+  gridContainer = document.createElement('div');
+  gridContainer.className = 'grid-section';
+
+  items.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'grid-item' + (item.type === 'text' ? ' text-block' : '');
+    div.dataset.itemId = item.id;
+    div.style.animationDelay = `${i * 0.035}s`;
+
+    if (item.type === 'image') {
+      const src = isDesktop() ? item.thumb : item.full;
+      div.innerHTML = `<img src="${src}" alt="${item.id}" loading="lazy">`;
+      if (isDesktop()) {
+        div.addEventListener('click', () => openFromGrid(item.id));
+      }
+    } else {
+      div.innerHTML = `<div class="text-content">${item.text}</div>`;
+      if (isDesktop()) {
+        div.style.cursor = 'pointer';
+        div.addEventListener('click', () => openFromGrid(item.id));
+      }
+    }
+
+    gridContainer.appendChild(div);
+  });
+
+  flow.appendChild(gridContainer);
+}
+
+// === Expand / Close without rebuilding grid ===
+
+function openFromGrid(id) {
+  removeExpanded();
+
+  expandedId = id;
+  isEnlarged = false;
+  history.replaceState(null, '', '#' + id);
+
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  lastClickedGridItem = gridContainer.querySelector(`[data-item-id="${id}"]`);
+
+  if (item.type === 'image') {
+    expandedEl = createExpandedImage(item);
+  } else {
+    expandedEl = createExpandedText(item);
+  }
+
+  // Insert after grid
+  gridContainer.after(expandedEl);
+
+  requestAnimationFrame(() => {
+    expandedEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  if (item.type === 'image') preloadNeighbors(getIdx());
+}
+
+function removeExpanded() {
+  if (expandedEl) {
+    expandedEl.remove();
+    expandedEl = null;
+  }
+  lastClickedGridItem = null;
+}
+
+function closeExpanded() {
+  const scrollTarget = lastClickedGridItem;
+  removeExpanded();
+  expandedId = null;
+  isEnlarged = false;
+  history.replaceState(null, '', window.location.pathname);
+
+  if (scrollTarget) {
+    requestAnimationFrame(() => {
+      scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+}
+
+// === Share button ===
 
 function shareButtonHtml() {
   return `
@@ -158,6 +140,8 @@ function bindShareBtn(container, id) {
   });
 }
 
+// === Detail metadata ===
+
 function hasDetail(item) {
   return item.title || item.description || item.link;
 }
@@ -171,71 +155,9 @@ function buildDetailHtml(item) {
   return html;
 }
 
-function render() {
-  flow.innerHTML = '';
+// === Create expanded elements ===
 
-  if (!isDesktop()) {
-    // Mobile/tablet: simple feed
-    const section = document.createElement('div');
-    section.className = 'grid-section';
-    items.forEach((item, i) => {
-      const el = makeGridItem(item, i);
-      section.appendChild(el);
-    });
-    flow.appendChild(section);
-    return;
-  }
-
-  // Desktop: interactive grid with inline expand
-  let gridItems = [];
-
-  function flushGrid() {
-    if (!gridItems.length) return;
-    const section = document.createElement('div');
-    section.className = 'grid-section';
-    gridItems.forEach((el, i) => { el.style.animationDelay = `${i * 0.035}s`; section.appendChild(el); });
-    flow.appendChild(section);
-    gridItems = [];
-  }
-
-  items.forEach((item) => {
-    if (item.id === expandedId) {
-      flushGrid();
-      if (item.type === 'image') {
-        buildExpanded(item);
-      } else {
-        buildExpandedText(item);
-      }
-    } else {
-      gridItems.push(makeGridItem(item, gridItems.length));
-    }
-  });
-  flushGrid();
-}
-
-function makeGridItem(item, index) {
-  const div = document.createElement('div');
-  div.className = 'grid-item' + (item.type === 'text' ? ' text-block' : '');
-  div.style.animationDelay = `${index * 0.035}s`;
-
-  if (item.type === 'image') {
-    const src = isDesktop() ? item.thumb : item.full;
-    div.innerHTML = `<img src="${src}" alt="${item.id}" loading="lazy">`;
-    if (isDesktop()) {
-      div.addEventListener('click', () => openFromGrid(item.id));
-    }
-  } else {
-    div.innerHTML = `<div class="text-content">${item.text}</div>`;
-    if (isDesktop()) {
-      div.style.cursor = 'pointer';
-      div.addEventListener('click', () => openFromGrid(item.id));
-    }
-  }
-
-  return div;
-}
-
-function buildExpanded(item) {
+function createExpandedImage(item) {
   const idx = getIdx();
   const hasPrev = idx > 0;
   const hasNext = idx < items.length - 1;
@@ -244,7 +166,9 @@ function buildExpanded(item) {
   el.id = item.id;
 
   let metaHtml = (item.meta || '') + shareButtonHtml();
-  let detailHtml = hasDetail(item) ? `<div class="detail-block">${buildDetailHtml(item)}</div>` : '<div class="detail-block" style="display:none"></div>';
+  let detailHtml = hasDetail(item)
+    ? `<div class="detail-block">${buildDetailHtml(item)}</div>`
+    : '<div class="detail-block" style="display:none"></div>';
 
   el.innerHTML = `
     <button class="close-btn" title="Close">&times;</button>
@@ -259,9 +183,8 @@ function buildExpanded(item) {
     <div class="meta-expanded">${metaHtml}</div>
     ${detailHtml}
   `;
-  flow.appendChild(el);
+
   el.querySelector('.close-btn').addEventListener('click', (e) => { e.stopPropagation(); closeExpanded(); });
-  rebindArrows(idx);
   bindShareBtn(el.querySelector('.meta-expanded'), item.id);
 
   const stage = el.querySelector('#img-stage');
@@ -270,10 +193,12 @@ function buildExpanded(item) {
     isEnlarged = !isEnlarged;
     stage.classList.toggle('enlarged', isEnlarged);
   });
-  preloadNeighbors(idx);
+
+  rebindArrows(el, idx);
+  return el;
 }
 
-function buildExpandedText(item) {
+function createExpandedText(item) {
   const idx = getIdx();
   const hasPrev = idx > 0;
   const hasNext = idx < items.length - 1;
@@ -288,12 +213,90 @@ function buildExpandedText(item) {
       <button class="nav-arrow" ${!hasNext ? 'disabled' : ''} data-dir="next">&#8594;</button>
     </div>
   `;
-  flow.appendChild(el);
   el.querySelector('.close-btn').addEventListener('click', (e) => { e.stopPropagation(); closeExpanded(); });
-  rebindArrows(idx);
+  rebindArrows(el, idx);
+  return el;
 }
 
-// Keyboard navigation
+// === Arrow navigation ===
+
+function navigateArrow(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  expandedId = id;
+  isEnlarged = false;
+  history.replaceState(null, '', '#' + id);
+
+  const currentIsImage = expandedEl && expandedEl.classList.contains('expanded-photo');
+  const nextIsImage = item.type === 'image';
+
+  // If type changes (image↔text), replace the expanded element
+  if (!nextIsImage || !currentIsImage) {
+    const oldEl = expandedEl;
+    expandedEl = nextIsImage ? createExpandedImage(item) : createExpandedText(item);
+    if (oldEl) oldEl.replaceWith(expandedEl);
+    if (nextIsImage) preloadNeighbors(getIdx());
+    return;
+  }
+
+  // Image-to-image: crossfade
+  const idx = getIdx();
+  const stage = expandedEl.querySelector('.img-stage');
+  const imgFront = expandedEl.querySelector('#img-front');
+  const imgBack = expandedEl.querySelector('#img-back');
+
+  if (!imgFront || !imgBack || !stage) return;
+
+  stage.classList.remove('enlarged');
+  preloadImage(item.full).then(() => {
+    imgBack.src = item.full;
+    imgBack.style.opacity = '1';
+    imgFront.style.opacity = '0';
+    setTimeout(() => {
+      imgFront.src = item.full;
+      imgFront.style.opacity = '1';
+      imgBack.style.opacity = '0';
+
+      expandedEl.id = item.id;
+
+      const meta = expandedEl.querySelector('.meta-expanded');
+      if (meta) {
+        meta.innerHTML = (item.meta || '') + shareButtonHtml();
+        bindShareBtn(meta, item.id);
+      }
+
+      const detailBlock = expandedEl.querySelector('.detail-block');
+      if (detailBlock) {
+        detailBlock.innerHTML = buildDetailHtml(item);
+        detailBlock.style.display = hasDetail(item) ? 'block' : 'none';
+      }
+
+      rebindArrows(expandedEl, idx);
+      preloadNeighbors(idx);
+    }, 260);
+  });
+}
+
+function rebindArrows(container, idx) {
+  const prevBtn = container.querySelector('.nav-arrow[data-dir="prev"]');
+  const nextBtn = container.querySelector('.nav-arrow[data-dir="next"]');
+  if (prevBtn) {
+    const n = prevBtn.cloneNode(true);
+    prevBtn.replaceWith(n);
+    n.disabled = idx <= 0;
+    if (idx > 0) n.addEventListener('click', (e) => { e.stopPropagation(); navigateArrow(items[idx - 1].id); });
+  }
+  if (nextBtn) {
+    const n = nextBtn.cloneNode(true);
+    nextBtn.replaceWith(n);
+    n.disabled = idx >= items.length - 1;
+    if (idx < items.length - 1) n.addEventListener('click', (e) => { e.stopPropagation(); navigateArrow(items[idx + 1].id); });
+  }
+}
+
+// === Keyboard ===
+
 document.addEventListener('keydown', (e) => {
   if (!expandedId) return;
   const idx = getIdx();
@@ -304,18 +307,23 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowRight' && idx < items.length - 1) { navigateArrow(items[idx + 1].id); }
 });
 
-// Hash navigation
+// === Init ===
+
+buildGrid();
+
+// Hash navigation on load
 const hash = window.location.hash.slice(1);
-if (hash) {
+if (hash && isDesktop()) {
   const item = items.find(i => i.id === hash);
-  if (item && isDesktop()) expandedId = item.id;
-}
-render();
-if (hash) {
-  requestAnimationFrame(() => {
-    const el = document.getElementById(hash);
-    if (el) el.scrollIntoView({ block: 'start' });
-  });
+  if (item) {
+    expandedId = item.id;
+    lastClickedGridItem = gridContainer.querySelector(`[data-item-id="${hash}"]`);
+    expandedEl = item.type === 'image' ? createExpandedImage(item) : createExpandedText(item);
+    gridContainer.after(expandedEl);
+    requestAnimationFrame(() => {
+      expandedEl.scrollIntoView({ block: 'start' });
+    });
+  }
 }
 
 // Copy protection
