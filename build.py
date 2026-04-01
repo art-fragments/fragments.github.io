@@ -267,7 +267,7 @@ def build_editor(image_items):
     if not image_items:
         return
 
-    # Collect existing metadata
+    # Collect existing metadata for ALL images
     editor_items = []
     for item in image_items:
         editor_items.append({
@@ -280,13 +280,14 @@ def build_editor(image_items):
         })
 
     editor_json = json.dumps(editor_items, indent=2, ensure_ascii=False)
+    total = len(editor_items)
 
     editor_html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fragments — content editor</title>
+<title>fragments — content editor ({total} images)</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500&family=DM+Mono:wght@300;400&display=swap');
 * {{ margin: 0; padding: 0; box-sizing: border-box; }}
@@ -305,6 +306,7 @@ h1 {{ font-size: 18px; font-weight: 500; letter-spacing: 0.1em; text-transform: 
 .item-fields input:focus, .item-fields textarea:focus {{ outline: none; border-color: #999; background: #fff; }}
 .item-fields textarea {{ resize: vertical; min-height: 60px; }}
 .filename {{ font-family: 'DM Mono', monospace; font-size: 11px; color: #bbb; }}
+.item-number {{ font-family: 'DM Mono', monospace; font-size: 11px; color: #ccc; }}
 .actions {{ position: sticky; top: 0; background: #fafafa; padding: 16px 0; z-index: 10; display: flex; gap: 16px; align-items: center; border-bottom: 1px solid #eee; margin-bottom: 24px; }}
 .btn {{ font-family: 'DM Mono', monospace; font-size: 14px; padding: 10px 24px; border: 1px solid #333; background: #333; color: #fff; cursor: pointer; border-radius: 3px; transition: all 0.2s; }}
 .btn:hover {{ background: #000; }}
@@ -313,14 +315,15 @@ h1 {{ font-size: 18px; font-weight: 500; letter-spacing: 0.1em; text-transform: 
 .status {{ font-family: 'DM Mono', monospace; font-size: 13px; color: #999; }}
 .changed {{ border-left: 3px solid #e8a838; }}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 <h1>fragments — content editor</h1>
-<p class="subtitle">Edit metadata for images. Click "Download JSONs" to save files into src/ alongside images.</p>
+<p class="subtitle">{total} images. Edit metadata, then download JSON files into src/.</p>
 
 <div class="actions">
-  <button class="btn" onclick="downloadAll()">Download JSONs</button>
-  <button class="btn btn-secondary" onclick="downloadZip()">Download as ZIP</button>
+  <button class="btn" onclick="downloadZip()">Download all as ZIP</button>
+  <button class="btn btn-secondary" onclick="downloadChanged()">Download changed only</button>
   <span class="status" id="status"></span>
 </div>
 
@@ -328,21 +331,28 @@ h1 {{ font-size: 18px; font-weight: 500; letter-spacing: 0.1em; text-transform: 
 
 <script>
 const items = {editor_json};
-
 const editor = document.getElementById('editor');
+
+function escAttr(s) {{
+  return (s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}}
+
+function escHtml(s) {{
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}}
 
 items.forEach((item, i) => {{
   const div = document.createElement('div');
   div.className = 'item';
   div.dataset.index = i;
   div.innerHTML = `
-    <img src="${{item.thumb}}" alt="${{item.src_name}}">
+    <img src="${{item.thumb}}" alt="${{item.src_name}}" loading="lazy">
     <div class="item-fields">
-      <span class="filename">${{item.src_name}}</span>
+      <span class="filename">${{item.src_name}} <span class="item-number">#${{i + 1}} / ${{items.length}}</span></span>
       <label>Title</label>
       <input type="text" data-field="title" value="${{escAttr(item.title)}}" placeholder="Work title (optional)">
       <label>Description</label>
-      <textarea data-field="description" placeholder="Short description, series info (optional)">${{item.description}}</textarea>
+      <textarea data-field="description" placeholder="Short description, series info (optional)">${{escHtml(item.description)}}</textarea>
       <label>Link</label>
       <input type="text" data-field="link" value="${{escAttr(item.link)}}" placeholder="https://kremenskii.art/... (optional)">
       <label>Link text</label>
@@ -350,14 +360,10 @@ items.forEach((item, i) => {{
     </div>
   `;
   editor.appendChild(div);
-
-  // Mark changed
   div.querySelectorAll('input, textarea').forEach(el => {{
     el.addEventListener('input', () => {{ div.classList.add('changed'); }});
   }});
 }});
-
-function escAttr(s) {{ return (s || '').replace(/"/g, '&quot;'); }}
 
 function getItemData(i) {{
   const div = editor.querySelector(`[data-index="${{i}}"]`);
@@ -374,26 +380,53 @@ function getItemData(i) {{
   return data;
 }}
 
-function downloadAll() {{
+function getJsonName(item) {{
+  return item.src_name.replace(/\\.[^.]+$/, '') + '.json';
+}}
+
+async function downloadZip() {{
+  const zip = new JSZip();
   let count = 0;
   items.forEach((item, i) => {{
     const data = getItemData(i);
     if (!data || Object.keys(data).length === 0) return;
-    const name = item.src_name.replace(/\\.[^.]+$/, '') + '.json';
-    const blob = new Blob([JSON.stringify(data, null, 2)], {{ type: 'application/json' }});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    zip.file(getJsonName(item), JSON.stringify(data, null, 2));
     count++;
   }});
-  document.getElementById('status').textContent = count > 0 ? `Downloaded ${{count}} JSON file(s). Place them in src/ and re-run build.py` : 'No metadata to save';
+  if (count === 0) {{
+    document.getElementById('status').textContent = 'No metadata to save';
+    return;
+  }}
+  const blob = await zip.generateAsync({{ type: 'blob' }});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fragments-metadata.zip';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  document.getElementById('status').textContent = `Downloaded ZIP with ${{count}} JSON file(s). Unzip into src/ and re-run build.py`;
 }}
 
-async function downloadZip() {{
-  // Simple approach: download individual files since we don't have a zip library
-  downloadAll();
+async function downloadChanged() {{
+  const zip = new JSZip();
+  let count = 0;
+  document.querySelectorAll('.item.changed').forEach(div => {{
+    const i = parseInt(div.dataset.index);
+    const data = getItemData(i);
+    if (!data || Object.keys(data).length === 0) return;
+    zip.file(getJsonName(items[i]), JSON.stringify(data, null, 2));
+    count++;
+  }});
+  if (count === 0) {{
+    document.getElementById('status').textContent = 'No changes to save';
+    return;
+  }}
+  const blob = await zip.generateAsync({{ type: 'blob' }});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'fragments-metadata-changed.zip';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  document.getElementById('status').textContent = `Downloaded ZIP with ${{count}} changed JSON file(s)`;
 }}
 </script>
 </body>
@@ -401,7 +434,7 @@ async function downloadZip() {{
 
     editor_path = Path("content-editor.html")
     editor_path.write_text(editor_html, encoding="utf-8")
-    print(f"  Generated {editor_path}")
+    print(f"  Generated {editor_path} ({total} images)")
 
 
 # --- Main ---
