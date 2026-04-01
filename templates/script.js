@@ -42,10 +42,16 @@ function isDesktop() {
 function init() {
   allGridItems = items.map((item, i) => {
     const div = document.createElement('div');
-    div.className = 'grid-item' + (item.type === 'text' ? ' text-block' : '');
+    div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '');
     div.dataset.itemId = item.id;
     div.dataset.itemIndex = i;
     div.style.animationDelay = `${i * 0.035}s`;
+
+    // Remove entering class after animation so re-parenting doesn't re-trigger it
+    div.addEventListener('animationend', () => {
+      div.classList.remove('entering');
+      div.style.animationDelay = '';
+    }, { once: true });
 
     if (item.type === 'image') {
       const src = isDesktop() ? item.thumb : item.full;
@@ -384,3 +390,31 @@ document.addEventListener('contextmenu', (e) => {
 document.addEventListener('dragstart', (e) => {
   if (e.target.tagName === 'IMG') e.preventDefault();
 });
+
+// === Scroll position persistence ===
+const SCROLL_KEY = 'fragments_scroll_pos';
+
+// Restore scroll position on load (only if no hash navigation)
+if (!hash) {
+  try {
+    const saved = localStorage.getItem(SCROLL_KEY);
+    if (saved) {
+      const pos = parseInt(saved, 10);
+      // Wait for images to start loading, then restore
+      requestAnimationFrame(() => {
+        setTimeout(() => { window.scrollTo(0, pos); }, 100);
+      });
+    }
+  } catch (e) {}
+}
+
+// Save scroll position periodically
+let scrollTimer = null;
+window.addEventListener('scroll', () => {
+  if (scrollTimer) clearTimeout(scrollTimer);
+  scrollTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(SCROLL_KEY, String(window.scrollY));
+    } catch (e) {}
+  }, 200);
+}, { passive: true });

@@ -182,10 +182,54 @@ def process_texts():
 
 
 def shuffle_items(all_items):
-    """Deterministic shuffle: seed = number of files."""
-    rng = random.Random(len(all_items))
-    rng.shuffle(all_items)
-    return all_items
+    """
+    Order items using order.json for pinned positions.
+    
+    Logic:
+    - If order.json exists: first N items (pinned) stay in their saved order.
+      New items + remaining items are shuffled and appended after pinned.
+    - If order.json doesn't exist: full shuffle, then save first N as pinned.
+    
+    PINNED_COUNT from config controls how many items are locked.
+    Delete order.json to get a fresh shuffle.
+    """
+    order_path = Path(config.ORDER_FILE)
+    pinned_count = getattr(config, 'PINNED_COUNT', 10)
+
+    if order_path.exists():
+        # Load pinned IDs
+        saved = json.loads(order_path.read_text(encoding="utf-8"))
+        pinned_ids = saved.get("pinned", [])
+
+        # Build lookup
+        item_by_id = {item["id"]: item for item in all_items}
+
+        # Pinned items in saved order (skip any that no longer exist)
+        pinned = [item_by_id.pop(pid) for pid in pinned_ids if pid in item_by_id]
+
+        # Everything else gets shuffled
+        rest = list(item_by_id.values())
+        rng = random.Random(len(all_items))
+        rng.shuffle(rest)
+
+        result = pinned + rest
+        print(f"  Order: {len(pinned)} pinned + {len(rest)} shuffled")
+    else:
+        # First time: full shuffle
+        rng = random.Random(len(all_items))
+        rng.shuffle(all_items)
+        result = all_items
+        print(f"  Order: full shuffle (no order.json)")
+
+    # Save/update pinned order
+    pinned_ids = [item["id"] for item in result[:pinned_count]]
+    order_path.write_text(
+        json.dumps({"pinned": pinned_ids}, indent=2, ensure_ascii=False),
+        encoding="utf-8"
+    )
+    print(f"  Saved {len(pinned_ids)} pinned IDs to {order_path}")
+
+    return result
 
 
 # --- HTML assembly ---
@@ -381,7 +425,6 @@ def main():
         sys.exit(1)
 
     all_items = shuffle_items(all_items)
-    print(f"  Shuffled with seed={len(all_items)}")
 
     build_html(all_items)
     build_editor(image_items)

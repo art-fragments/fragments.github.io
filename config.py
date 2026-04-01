@@ -15,3 +15,7 @@ SRC_DIR = "src"
 THUMB_DIR = "photos/thumb"
 FULL_DIR = "photos/full"
 OUTPUT_HTML = "index.html"
+
+# Order
+PINNED_COUNT = 10  # First N items are locked in place, rest shuffled
+ORDER_FILE = "order.json"  # Stores pinned item IDs; delete to re-shuffle

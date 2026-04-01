@@ -327,8 +327,8 @@ body {
   .grid-item.text-block .text-content { font-size: 15px; }
 }
 
-/* Animation */
-.grid-item {
+/* Animation — only on initial load */
+.grid-item.entering {
   opacity: 0;
   transform: translateY(8px);
   animation: fadeUp 0.45s ease forwards;
