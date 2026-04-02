@@ -19,3 +19,9 @@ OUTPUT_HTML = "index.html"
 # Order
 PINNED_COUNT = 10  # First N items are locked in place, rest shuffled
 ORDER_FILE = "order.json"  # Stores pinned item IDs; delete to re-shuffle
+
+# Social links (leave empty to hide)
+SOCIAL_LINKS = {
+    # "instagram": "https://www.instagram.com/yourhandle",
+    # "bandcamp": "https://yourname.bandcamp.com",
+}

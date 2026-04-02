@@ -42,7 +42,7 @@ function isDesktop() {
 function init() {
   allGridItems = items.map((item, i) => {
     const div = document.createElement('div');
-    div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '');
+    div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '') + (item.type === 'video' ? ' video-block' : '');
     div.dataset.itemId = item.id;
     div.dataset.itemIndex = i;
     div.style.animationDelay = `${i * 0.035}s`;
@@ -53,11 +53,27 @@ function init() {
       div.style.animationDelay = '';
     }, { once: true });
 
-    if (item.type === 'image') {
+    if (item.type === 'video') {
+      const src = item.full || item.thumb;
+      div.innerHTML = `<video src="${src}" autoplay muted loop playsinline preload="metadata"></video>`;
+      if (isDesktop()) {
+        div.addEventListener('click', () => openFromGrid(item.id));
+      }
+      // Mobile: show meta under video if available
+      if (!isDesktop() && hasDetail(item)) {
+        div.innerHTML += buildMobileDetail(item);
+      }
+    } else if (item.type === 'audio') {
+      div.innerHTML = buildAudioBlock(item);
+    } else if (item.type === 'image') {
       const src = isDesktop() ? item.thumb : item.full;
       div.innerHTML = `<img src="${src}" alt="${item.id}" loading="lazy">`;
       if (isDesktop()) {
         div.addEventListener('click', () => openFromGrid(item.id));
+      }
+      // Mobile: show meta under image if available
+      if (!isDesktop() && hasDetail(item)) {
+        div.innerHTML += buildMobileDetail(item);
       }
     } else {
       div.innerHTML = `<div class="text-content">${item.text}</div>`;
@@ -71,6 +87,25 @@ function init() {
   });
 
   renderFlat();
+}
+
+function buildMobileDetail(item) {
+  let html = '<div class="mobile-detail">';
+  if (item.title) html += `<div class="mobile-detail-title">${item.title}</div>`;
+  if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
+  if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
+  html += `<button class="mobile-share-btn" data-id="${item.id}">copy link</button>`;
+  html += '</div>';
+  return html;
+}
+
+function buildAudioBlock(item) {
+  const label = item.title || '';
+  return `
+    <div class="audio-player" data-src="${item.full}">
+      <div class="audio-btn">▶</div>
+      ${label ? `<div class="audio-label">${label}</div>` : ''}
+    </div>`;
 }
 
 // === Render: flat grid (no expanded) ===
@@ -129,10 +164,13 @@ function openFromGrid(id) {
 
   lastClickedGridItem = allGridItems[idx];
 
-  if (item.type === 'image') {
+  if (item.type === 'image' || item.type === 'video') {
     expandedEl = createExpandedImage(item);
-  } else {
+  } else if (item.type === 'text') {
     expandedEl = createExpandedText(item);
+  } else {
+    // audio or unknown — don't expand
+    return;
   }
 
   renderSplit(idx);
@@ -215,19 +253,29 @@ function createExpandedImage(item) {
   const el = document.createElement('div');
   el.className = 'expanded-photo';
   el.id = item.id;
+  const isVideo = item.type === 'video';
 
   let metaHtml = (item.meta || '') + shareButtonHtml();
   let detailHtml = hasDetail(item)
     ? `<div class="detail-block">${buildDetailHtml(item)}</div>`
     : '<div class="detail-block" style="display:none"></div>';
 
+  let mediaHtml;
+  if (isVideo) {
+    mediaHtml = `
+      <video id="media-front" src="${item.full}" autoplay muted loop playsinline></video>`;
+  } else {
+    mediaHtml = `
+      <img id="img-front" src="${item.full}" alt="${item.id}">
+      <img id="img-back" class="img-back" src="" alt="">`;
+  }
+
   el.innerHTML = `
     <button class="close-btn" title="Close">&times;</button>
     <div class="viewer-row">
       <button class="nav-arrow" ${!hasPrev ? 'disabled' : ''} data-dir="prev">&#8592;</button>
       <div class="img-stage" id="img-stage">
-        <img id="img-front" src="${item.full}" alt="${item.id}">
-        <img id="img-back" class="img-back" src="" alt="">
+        ${mediaHtml}
       </div>
       <button class="nav-arrow" ${!hasNext ? 'disabled' : ''} data-dir="next">&#8594;</button>
     </div>
@@ -239,11 +287,13 @@ function createExpandedImage(item) {
   bindShareBtn(el.querySelector('.meta-expanded'), item.id);
 
   const stage = el.querySelector('#img-stage');
-  stage.addEventListener('click', (e) => {
-    e.stopPropagation();
-    isEnlarged = !isEnlarged;
-    stage.classList.toggle('enlarged', isEnlarged);
-  });
+  if (!isVideo) {
+    stage.addEventListener('click', (e) => {
+      e.stopPropagation();
+      isEnlarged = !isEnlarged;
+      stage.classList.toggle('enlarged', isEnlarged);
+    });
+  }
 
   rebindArrows(el, idx);
   return el;
@@ -275,18 +325,32 @@ function navigateArrow(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
 
+  // Skip audio items when navigating
+  if (item.type === 'audio') return;
+
   expandedId = id;
   isEnlarged = false;
   history.replaceState(null, '', '#' + id);
 
   const idx = getIdx();
-  const currentIsImage = expandedEl && expandedEl.classList.contains('expanded-photo');
-  const nextIsImage = item.type === 'image';
+  const currentIsMedia = expandedEl && expandedEl.classList.contains('expanded-photo');
+  const nextIsMedia = item.type === 'image' || item.type === 'video';
+  const nextIsText = item.type === 'text';
 
-  // If type changes (image↔text), replace expanded element in place (no re-split)
-  if (!nextIsImage || !currentIsImage) {
+  // If type changes, or going to/from video, replace expanded element
+  const currentHasImgFront = expandedEl && expandedEl.querySelector('#img-front');
+  const nextIsImage = item.type === 'image';
+  const canCrossfade = currentIsMedia && nextIsImage && currentHasImgFront;
+
+  if (!canCrossfade) {
     const oldEl = expandedEl;
-    expandedEl = nextIsImage ? createExpandedImage(item) : createExpandedText(item);
+    if (nextIsMedia) {
+      expandedEl = createExpandedImage(item);
+    } else if (nextIsText) {
+      expandedEl = createExpandedText(item);
+    } else {
+      return;
+    }
     if (oldEl) {
       oldEl.replaceWith(expandedEl);
     }
@@ -297,7 +361,7 @@ function navigateArrow(id) {
     return;
   }
 
-  // Image-to-image: crossfade in place, NO re-split
+  // Image-to-image: crossfade in place
   const stage = expandedEl.querySelector('.img-stage');
   const imgFront = expandedEl.querySelector('#img-front');
   const imgBack = expandedEl.querySelector('#img-back');
@@ -375,7 +439,7 @@ if (hash && isDesktop()) {
     const item = items[idx];
     expandedId = item.id;
     lastClickedGridItem = allGridItems[idx];
-    expandedEl = item.type === 'image' ? createExpandedImage(item) : createExpandedText(item);
+    expandedEl = (item.type === 'image' || item.type === 'video') ? createExpandedImage(item) : createExpandedText(item);
     renderSplit(idx);
     requestAnimationFrame(() => {
       if (expandedEl) expandedEl.scrollIntoView({ block: 'start' });
@@ -385,10 +449,67 @@ if (hash && isDesktop()) {
 
 // Copy protection
 document.addEventListener('contextmenu', (e) => {
-  if (e.target.tagName === 'IMG') e.preventDefault();
+  if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') e.preventDefault();
 });
 document.addEventListener('dragstart', (e) => {
-  if (e.target.tagName === 'IMG') e.preventDefault();
+  if (e.target.tagName === 'IMG' || e.target.tagName === 'VIDEO') e.preventDefault();
+});
+
+// Mobile share buttons (event delegation)
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.mobile-share-btn');
+  if (!btn) return;
+  e.stopPropagation();
+  const id = btn.dataset.id;
+  const url = window.location.origin + window.location.pathname + '#' + id;
+  navigator.clipboard.writeText(url).then(() => {
+    btn.textContent = 'copied!';
+    setTimeout(() => { btn.textContent = 'copy link'; }, 2000);
+  });
+});
+
+// Audio player (event delegation)
+let currentAudio = null;
+let currentAudioBtn = null;
+document.addEventListener('click', (e) => {
+  const player = e.target.closest('.audio-player');
+  if (!player) return;
+  const src = player.dataset.src;
+  const btn = player.querySelector('.audio-btn');
+  if (!src || !btn) return;
+
+  if (currentAudio && currentAudioBtn === btn) {
+    // Toggle off
+    currentAudio.pause();
+    currentAudio = null;
+    currentAudioBtn = null;
+    btn.textContent = '▶';
+    btn.classList.remove('playing');
+    return;
+  }
+
+  // Stop previous
+  if (currentAudio) {
+    currentAudio.pause();
+    if (currentAudioBtn) {
+      currentAudioBtn.textContent = '▶';
+      currentAudioBtn.classList.remove('playing');
+    }
+  }
+
+  const audio = new Audio(src);
+  audio.play();
+  btn.textContent = '■';
+  btn.classList.add('playing');
+  currentAudio = audio;
+  currentAudioBtn = btn;
+
+  audio.addEventListener('ended', () => {
+    btn.textContent = '▶';
+    btn.classList.remove('playing');
+    currentAudio = null;
+    currentAudioBtn = null;
+  });
 });
 
 // === Scroll position persistence ===

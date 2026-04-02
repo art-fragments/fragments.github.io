@@ -3,8 +3,12 @@
 build.py — Static site generator for fragments.
 
 Usage:
-    1. Drop images (.jpg/.png) and text files (.txt) into src/
-    2. Optionally add .json metadata files alongside images:
+    1. Drop files into src/:
+       - Images (.jpg/.png) → processed into thumb + full
+       - Text (.txt) → text blocks in grid
+       - Video (.mp4/.mov/.webm) → autoplay loops in grid (no controls)
+       - Audio (.mp3/.m4a/.ogg) → play/stop buttons in grid
+    2. Optionally add .json metadata files alongside any file:
        e.g. charcoal_01.jpg + charcoal_01.json
     3. Run: python build.py
     4. git add . && git commit && git push
@@ -17,9 +21,9 @@ JSON metadata format:
         "link_text": "View series"
     }
 
-All fields optional. Images without JSON just show as images.
-Text .txt files become text blocks in the grid.
-Everything is shuffled deterministically (seed = file count).
+All fields optional. Files without JSON just show as-is.
+First 10 items are pinned (order.json). Rest shuffled.
+Delete order.json to re-shuffle everything.
 """
 
 import json
@@ -49,6 +53,9 @@ TEMPLATES_DIR = Path("templates")
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 TEXT_EXTENSIONS = {".txt"}
+VIDEO_EXTENSIONS = {".mp4", ".mov", ".webm"}
+AUDIO_EXTENSIONS = {".mp3", ".m4a", ".ogg", ".wav"}
+MEDIA_DIR = Path("media")  # for video/audio files (no processing, just copy)
 
 
 # --- Helpers ---
@@ -181,6 +188,77 @@ def process_texts():
     return text_items
 
 
+def process_videos():
+    """Process video files — just copy to media/, no transcoding."""
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    video_items = []
+
+    for src_path in sorted(SRC_DIR.iterdir()):
+        if src_path.suffix.lower() not in VIDEO_EXTENSIONS:
+            continue
+
+        item_id = make_short_id(src_path.stem)
+        dest = MEDIA_DIR / src_path.name
+        print(f"  [vid] {src_path.name} → {item_id}")
+
+        # Copy if not already there or source is newer
+        import shutil
+        if not dest.exists() or src_path.stat().st_mtime > dest.stat().st_mtime:
+            shutil.copy2(src_path, dest)
+
+        meta = load_metadata(src_path)
+        item = {
+            "type": "video",
+            "id": item_id,
+            "full": f"media/{src_path.name}",
+            "thumb": f"media/{src_path.name}",
+            "_src_name": src_path.name,
+        }
+        if meta.get("title"):
+            item["title"] = meta["title"]
+        if meta.get("description"):
+            item["description"] = meta["description"]
+        if meta.get("link"):
+            item["link"] = meta["link"]
+            item["link_text"] = meta.get("link_text", "View on kremenskii.art")
+
+        video_items.append(item)
+
+    return video_items
+
+
+def process_audio():
+    """Process audio files — just copy to media/."""
+    MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    audio_items = []
+
+    for src_path in sorted(SRC_DIR.iterdir()):
+        if src_path.suffix.lower() not in AUDIO_EXTENSIONS:
+            continue
+
+        item_id = make_short_id(src_path.stem)
+        dest = MEDIA_DIR / src_path.name
+        print(f"  [aud] {src_path.name} → {item_id}")
+
+        import shutil
+        if not dest.exists() or src_path.stat().st_mtime > dest.stat().st_mtime:
+            shutil.copy2(src_path, dest)
+
+        meta = load_metadata(src_path)
+        item = {
+            "type": "audio",
+            "id": item_id,
+            "full": f"media/{src_path.name}",
+            "_src_name": src_path.name,
+        }
+        if meta.get("title"):
+            item["title"] = meta["title"]
+
+        audio_items.append(item)
+
+    return audio_items
+
+
 def shuffle_items(all_items):
     """
     Order items using order.json for pinned positions.
@@ -255,6 +333,17 @@ def build_html(all_items):
     html = html.replace("{{SITE_SUBTITLE}}", config.SITE_SUBTITLE)
     html = html.replace("{{SITE_EMAIL}}", config.SITE_EMAIL)
     html = html.replace("{{SITE_AUTHOR}}", config.SITE_AUTHOR)
+
+    # Social links
+    social_links = getattr(config, 'SOCIAL_LINKS', {})
+    if social_links:
+        links_html = '<div class="footer-social">'
+        for name, url in social_links.items():
+            links_html += f'<a href="{url}" target="_blank" rel="noopener">{name}</a>'
+        links_html += '</div>'
+    else:
+        links_html = ''
+    html = html.replace("{{SOCIAL_LINKS}}", links_html)
 
     OUTPUT_HTML.write_text(html, encoding="utf-8")
     print(f"  Generated {OUTPUT_HTML}")
@@ -449,12 +538,19 @@ def main():
 
     image_items = process_images()
     text_items = process_texts()
-    all_items = image_items + text_items
+    video_items = process_videos()
+    audio_items = process_audio()
+    all_items = image_items + text_items + video_items + audio_items
 
-    print(f"\n  {len(image_items)} images, {len(text_items)} text blocks")
+    counts = []
+    if image_items: counts.append(f"{len(image_items)} images")
+    if text_items: counts.append(f"{len(text_items)} text blocks")
+    if video_items: counts.append(f"{len(video_items)} videos")
+    if audio_items: counts.append(f"{len(audio_items)} audio")
+    print(f"\n  {', '.join(counts)}")
 
     if not all_items:
-        print("  No content found in src/. Add .jpg/.png/.txt files.")
+        print("  No content found in src/. Add images, .txt, .mp4, or .mp3 files.")
         sys.exit(1)
 
     all_items = shuffle_items(all_items)
