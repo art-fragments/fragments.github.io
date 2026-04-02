@@ -462,17 +462,27 @@ init();
 
 // Hash navigation on load
 const hash = window.location.hash.slice(1);
-if (hash && isDesktop()) {
+if (hash) {
   const idx = items.findIndex(i => i.id === hash);
   if (idx !== -1) {
-    const item = items[idx];
-    expandedId = item.id;
-    lastClickedGridItem = allGridItems[idx];
-    expandedEl = (item.type === 'image' || item.type === 'video') ? createExpandedImage(item) : createExpandedText(item);
-    renderSplit(idx);
-    requestAnimationFrame(() => {
-      if (expandedEl) expandedEl.scrollIntoView({ block: 'start' });
-    });
+    if (isDesktop()) {
+      const item = items[idx];
+      expandedId = item.id;
+      lastClickedGridItem = allGridItems[idx];
+      expandedEl = (item.type === 'image' || item.type === 'video') ? createExpandedImage(item) : createExpandedText(item);
+      renderSplit(idx);
+      requestAnimationFrame(() => {
+        if (expandedEl) expandedEl.scrollIntoView({ block: 'start' });
+      });
+    } else {
+      // Mobile: scroll to the grid item
+      requestAnimationFrame(() => {
+        const gridItem = allGridItems[idx];
+        if (gridItem) {
+          gridItem.scrollIntoView({ block: 'start' });
+        }
+      });
+    }
   }
 }
 
@@ -493,7 +503,7 @@ document.addEventListener('click', (e) => {
   const url = window.location.origin + window.location.pathname + '#' + id;
   navigator.clipboard.writeText(url).then(() => {
     btn.textContent = 'copied!';
-    setTimeout(() => { btn.textContent = 'copy link'; }, 2000);
+    setTimeout(() => { btn.textContent = 'share'; }, 2000);
   });
 });
 
