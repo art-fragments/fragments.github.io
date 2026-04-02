@@ -118,9 +118,22 @@ function buildAudioBlock(item) {
 
 // === Render: flat grid (no expanded) ===
 
-function restartVideos() {
+// === Video autoplay: only when visible in viewport ===
+
+const videoObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    const video = entry.target;
+    if (entry.isIntersecting) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  });
+}, { threshold: 0.25 });
+
+function observeVideos() {
   flow.querySelectorAll('.grid-item video').forEach(v => {
-    v.play().catch(() => {});
+    videoObserver.observe(v);
   });
 }
 
@@ -132,7 +145,7 @@ function renderFlat() {
   flow.appendChild(grid);
   gridBefore = grid;
   gridAfter = null;
-  restartVideos();
+  observeVideos();
 }
 
 // === Render: split grid around expanded item ===
@@ -160,7 +173,7 @@ function renderSplit(itemIndex) {
     gridAfter.appendChild(allGridItems[i]);
   }
   flow.appendChild(gridAfter);
-  restartVideos();
+  observeVideos();
 }
 
 // === Open / Close ===
