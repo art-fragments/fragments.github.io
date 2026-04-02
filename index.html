@@ -2678,13 +2678,30 @@ if (hash) {
         if (expandedEl) expandedEl.scrollIntoView({ block: 'start' });
       });
     } else {
-      // Mobile: scroll to the grid item
-      requestAnimationFrame(() => {
-        const gridItem = allGridItems[idx];
-        if (gridItem) {
-          gridItem.scrollIntoView({ block: 'start' });
+      // Mobile: wait for target image to load, then scroll
+      const gridItem = allGridItems[idx];
+      if (gridItem) {
+        const img = gridItem.querySelector('img');
+        const video = gridItem.querySelector('video');
+        const target = img || video;
+
+        function doScroll() {
+          gridItem.scrollIntoView({ block: 'start', behavior: 'instant' });
         }
-      });
+
+        if (target && !target.complete) {
+          // Image not loaded yet — wait for it
+          target.addEventListener('load', () => {
+            // Small delay to let layout settle
+            setTimeout(doScroll, 50);
+          }, { once: true });
+          // Fallback: scroll anyway after 2s
+          setTimeout(doScroll, 2000);
+        } else {
+          // Already loaded or no media
+          setTimeout(doScroll, 100);
+        }
+      }
     }
   }
 }
@@ -2771,9 +2788,13 @@ if (!hash) {
   } catch (e) {}
 }
 
-// Save scroll position periodically
+// Save scroll position periodically (disabled briefly on hash navigation)
 let scrollTimer = null;
+let scrollSaveEnabled = !hash;
+if (hash) setTimeout(() => { scrollSaveEnabled = true; }, 3000);
+
 window.addEventListener('scroll', () => {
+  if (!scrollSaveEnabled) return;
   if (scrollTimer) clearTimeout(scrollTimer);
   scrollTimer = setTimeout(() => {
     try {
