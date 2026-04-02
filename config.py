@@ -22,6 +22,6 @@ ORDER_FILE = "order.json"  # Stores pinned item IDs; delete to re-shuffle
 
 # Social links (leave empty to hide)
 SOCIAL_LINKS = {
-    # "instagram": "https://www.instagram.com/yourhandle",
-    # "bandcamp": "https://yourname.bandcamp.com",
+     "instagram": "https://www.instagram.com/dmitrii.kremenskii.art",
+     "bandcamp": "https://kremenskii.bandcamp.com/album/150011",
 }

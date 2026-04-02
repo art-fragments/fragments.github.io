@@ -118,6 +118,12 @@ function buildAudioBlock(item) {
 
 // === Render: flat grid (no expanded) ===
 
+function restartVideos() {
+  flow.querySelectorAll('.grid-item video').forEach(v => {
+    v.play().catch(() => {});
+  });
+}
+
 function renderFlat() {
   flow.innerHTML = '';
   const grid = document.createElement('div');
@@ -126,6 +132,7 @@ function renderFlat() {
   flow.appendChild(grid);
   gridBefore = grid;
   gridAfter = null;
+  restartVideos();
 }
 
 // === Render: split grid around expanded item ===
@@ -153,6 +160,7 @@ function renderSplit(itemIndex) {
     gridAfter.appendChild(allGridItems[i]);
   }
   flow.appendChild(gridAfter);
+  restartVideos();
 }
 
 // === Open / Close ===
