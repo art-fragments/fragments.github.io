@@ -465,3 +465,14 @@ img, video {
 @media (min-width: 1101px) {
   .mobile-detail { display: none; }
 }
+.visitor-count {
+  position: relative;
+  font-family: 'DM Mono', monospace;
+  font-size: 100px;
+  opacity: 1;
+  color: #000381;
+  display: block;
+  z-index: 9999;
+  margin-left: 65vw;
+  font-weight: 100;
+}

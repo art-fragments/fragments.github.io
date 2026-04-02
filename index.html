@@ -473,7 +473,17 @@ img, video {
 @media (min-width: 1101px) {
   .mobile-detail { display: none; }
 }
-
+.visitor-count {
+  position: relative;
+  font-family: 'DM Mono', monospace;
+  font-size: 100px;
+  opacity: 1;
+  color: #000381;
+  display: block;
+  z-index: 9999;
+  margin-left: 65vw;
+  font-weight: 100;
+}
 </style>
 </head>
 <body>
@@ -483,19 +493,10 @@ img, video {
 </header>
 <div class="flow" id="flow"></div>
 <footer class="site-footer">
-  <span class="visitor-count" style="    
-    position: relative;
-    font-family: 'DM Mono', monospace;
-    font-size: 100px;
-    opacity: 1;
-    color: #000381;
-    display: block;
-    z-index: 9999;
-    margin-left: 65vw;
-    font-weight: 100;"></span>
   <div class="footer-email"><span><a href="mailto:hi@kremenskii.art">hi@kremenskii.art</a></span></div>
   <div class="footer-social"><a href="https://www.instagram.com/dmitrii.kremenskii.art" target="_blank" rel="noopener">instagram</a><a href="https://kremenskii.bandcamp.com/album/150011" target="_blank" rel="noopener">bandcamp</a></div>
   <div class="footer-copy">
+    <span class="visitor-count"></span>
     <span>&copy; Dmitrii Kremenskii. All rights reserved.</span><br>
     <span class="footer-notice">No image may be reproduced without written permission.</span>
   </div>
@@ -955,7 +956,8 @@ const items = [
     "type": "image",
     "id": "f0-face",
     "thumb": "photos/thumb/faces-marker (81).jpg",
-    "full": "photos/full/faces-marker (81).jpg"
+    "full": "photos/full/faces-marker (81).jpg",
+    "description": "I’m not Joseph Beuys, but it’s still fat and felt."
   },
   {
     "type": "image",
@@ -2058,7 +2060,8 @@ const items = [
     "type": "image",
     "id": "1f-face",
     "thumb": "photos/thumb/faces-marker (16).jpg",
-    "full": "photos/full/faces-marker (16).jpg"
+    "full": "photos/full/faces-marker (16).jpg",
+    "description": "And where are my apples? I’m asking where they are. It’s dark here. And there are no apples."
   },
   {
     "type": "image",
@@ -2777,6 +2780,7 @@ fetch('https://billowing-snow-7d0b.dpix69.workers.dev/')
     if (el) el.textContent = d.count;
   })
   .catch(() => {});
+
 </script>
 </body>
 </html>
