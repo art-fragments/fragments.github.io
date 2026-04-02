@@ -416,7 +416,7 @@ img, video {
 
 .mobile-detail-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: baseline;
   gap: 12px;
 }
@@ -426,6 +426,7 @@ img, video {
   font-size: 15px;
   font-weight: 400;
   color: #333;
+  margin-right: auto;
 }
 
 .mobile-detail-desc {
