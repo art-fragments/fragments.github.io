@@ -568,3 +568,12 @@ window.addEventListener('scroll', () => {
     } catch (e) {}
   }, 200);
 }, { passive: true });
+
+// Visitor counter
+fetch('https://billowing-snow-7d0b.dpix69.workers.dev/')
+  .then(r => r.json())
+  .then(d => {
+    const el = document.querySelector('.visitor-count');
+    if (el) el.textContent = d.count;
+  })
+  .catch(() => {});
