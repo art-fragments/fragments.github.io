@@ -59,9 +59,8 @@ function init() {
       if (isDesktop()) {
         div.addEventListener('click', () => openFromGrid(item.id));
       }
-      // Mobile: show meta under video if available
-      if (!isDesktop() && hasDetail(item)) {
-        div.innerHTML += buildMobileDetail(item);
+      if (!isDesktop()) {
+        div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
       }
     } else if (item.type === 'audio') {
       div.innerHTML = buildAudioBlock(item);
@@ -71,9 +70,8 @@ function init() {
       if (isDesktop()) {
         div.addEventListener('click', () => openFromGrid(item.id));
       }
-      // Mobile: show meta under image if available
-      if (!isDesktop() && hasDetail(item)) {
-        div.innerHTML += buildMobileDetail(item);
+      if (!isDesktop()) {
+        div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
       }
     } else {
       div.innerHTML = `<div class="text-content">${item.text}</div>`;
@@ -91,12 +89,22 @@ function init() {
 
 function buildMobileDetail(item) {
   let html = '<div class="mobile-detail">';
-  if (item.title) html += `<div class="mobile-detail-title">${item.title}</div>`;
+  // Title row with share button on the right
+  html += '<div class="mobile-detail-row">';
+  if (item.title) {
+    html += `<span class="mobile-detail-title">${item.title}</span>`;
+  }
+  html += `<button class="mobile-share-btn" data-id="${item.id}">share</button>`;
+  html += '</div>';
   if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
   if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
-  html += `<button class="mobile-share-btn" data-id="${item.id}">copy link</button>`;
   html += '</div>';
   return html;
+}
+
+// Share-only row for images without JSON metadata
+function buildMobileShare(item) {
+  return `<div class="mobile-detail"><div class="mobile-detail-row"><button class="mobile-share-btn" data-id="${item.id}">share</button></div></div>`;
 }
 
 function buildAudioBlock(item) {
