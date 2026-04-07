@@ -4,11 +4,24 @@ let isEnlarged = false;
 const preloadCache = {};
 
 // DOM references
-let gridBefore = null;   // grid-section with items before expanded
-let gridAfter = null;    // grid-section with items after expanded
-let expandedEl = null;   // the expanded view element
-let allGridItems = [];   // all grid-item DOM elements, built once
+let gridBefore = null;
+let gridAfter = null;
+let expandedEl = null;
+let allGridItems = [];
 let lastClickedGridItem = null;
+
+// === Infinite scroll state ===
+const BATCH_DESKTOP = 30;
+const BATCH_MOBILE = 15;
+let loadedCount = 0;        // how many items have been built into DOM nodes
+let renderedCount = 0;       // how many items are currently in the grid
+let sentinel = null;         // IntersectionObserver target
+let scrollObserver = null;
+let allLoaded = false;
+
+function getBatchSize() {
+  return isDesktop() ? BATCH_DESKTOP : BATCH_MOBILE;
+}
 
 function getIdx() {
   return items.findIndex(i => i.id === expandedId);
@@ -37,88 +50,144 @@ function isDesktop() {
   return window.innerWidth > 1100;
 }
 
-// === Build all grid items once ===
+// === Build a single grid item DOM node ===
+
+function buildGridItem(item, i) {
+  const div = document.createElement('div');
+  div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '') + (item.type === 'video' ? ' video-block' : '');
+  div.dataset.itemId = item.id;
+  div.dataset.itemIndex = i;
+
+  // Stagger animation relative to batch, not absolute index
+  const batchOffset = i - (loadedCount - getBatchSize());
+  div.style.animationDelay = `${Math.max(0, batchOffset) * 0.035}s`;
+
+  div.addEventListener('animationend', () => {
+    div.classList.remove('entering');
+    div.style.animationDelay = '';
+  }, { once: true });
+
+  if (item.type === 'video') {
+    const src = item.full || item.thumb;
+    div.innerHTML = `<video src="${src}" autoplay muted loop playsinline preload="metadata"></video>`;
+    if (isDesktop()) {
+      div.addEventListener('click', () => openFromGrid(item.id));
+    }
+    if (!isDesktop()) {
+      div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
+    }
+  } else if (item.type === 'audio') {
+    div.innerHTML = buildAudioBlock(item);
+  } else if (item.type === 'image') {
+    const src = isDesktop() ? item.thumb : item.full;
+    div.innerHTML = `<img src="${src}" alt="${item.id}" loading="lazy">`;
+    if (isDesktop()) {
+      div.addEventListener('click', () => openFromGrid(item.id));
+    }
+    if (!isDesktop()) {
+      div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
+    }
+  } else {
+    div.innerHTML = `<div class="text-content">${item.text}</div>`;
+    if (isDesktop()) {
+      div.style.cursor = 'pointer';
+      div.addEventListener('click', () => openFromGrid(item.id));
+    }
+  }
+
+  return div;
+}
+
+// === Build next batch of grid items ===
+
+function buildNextBatch() {
+  if (loadedCount >= items.length) {
+    allLoaded = true;
+    return 0;
+  }
+  const batchSize = getBatchSize();
+  const end = Math.min(loadedCount + batchSize, items.length);
+  const startIdx = loadedCount;
+
+  for (let i = startIdx; i < end; i++) {
+    allGridItems[i] = buildGridItem(items[i], i);
+  }
+
+  loadedCount = end;
+  if (loadedCount >= items.length) allLoaded = true;
+  return end - startIdx;
+}
+
+// === Ensure items up to a given index are built ===
+
+function ensureBuiltUpTo(targetIndex) {
+  while (loadedCount <= targetIndex && loadedCount < items.length) {
+    buildNextBatch();
+  }
+}
+
+// === Init: build first batch only ===
 
 function init() {
-  allGridItems = items.map((item, i) => {
-    const div = document.createElement('div');
-    div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '') + (item.type === 'video' ? ' video-block' : '');
-    div.dataset.itemId = item.id;
-    div.dataset.itemIndex = i;
-    div.style.animationDelay = `${i * 0.035}s`;
+  allGridItems = new Array(items.length);
+  loadedCount = 0;
+  renderedCount = 0;
+  allLoaded = false;
 
-    // Remove entering class after animation so re-parenting doesn't re-trigger it
-    div.addEventListener('animationend', () => {
-      div.classList.remove('entering');
-      div.style.animationDelay = '';
-    }, { once: true });
-
-    if (item.type === 'video') {
-      const src = item.full || item.thumb;
-      div.innerHTML = `<video src="${src}" autoplay muted loop playsinline preload="metadata"></video>`;
-      if (isDesktop()) {
-        div.addEventListener('click', () => openFromGrid(item.id));
-      }
-      if (!isDesktop()) {
-        div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
-      }
-    } else if (item.type === 'audio') {
-      div.innerHTML = buildAudioBlock(item);
-    } else if (item.type === 'image') {
-      const src = isDesktop() ? item.thumb : item.full;
-      div.innerHTML = `<img src="${src}" alt="${item.id}" loading="lazy">`;
-      if (isDesktop()) {
-        div.addEventListener('click', () => openFromGrid(item.id));
-      }
-      if (!isDesktop()) {
-        div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
-      }
-    } else {
-      div.innerHTML = `<div class="text-content">${item.text}</div>`;
-      if (isDesktop()) {
-        div.style.cursor = 'pointer';
-        div.addEventListener('click', () => openFromGrid(item.id));
-      }
-    }
-
-    return div;
-  });
-
+  buildNextBatch();
   renderFlat();
+  setupScrollObserver();
 }
 
-function buildMobileDetail(item) {
-  let html = '<div class="mobile-detail">';
-  // Title row with share button on the right
-  html += '<div class="mobile-detail-row">';
-  if (item.title) {
-    html += `<span class="mobile-detail-title">${item.title}</span>`;
+// === Sentinel element for IntersectionObserver ===
+
+function createSentinel() {
+  if (sentinel) sentinel.remove();
+  if (allLoaded) { sentinel = null; return null; }
+  sentinel = document.createElement('div');
+  sentinel.className = 'scroll-sentinel';
+  sentinel.style.height = '1px';
+  return sentinel;
+}
+
+function setupScrollObserver() {
+  if (scrollObserver) scrollObserver.disconnect();
+
+  scrollObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !allLoaded && !expandedId) {
+        loadMoreItems();
+      }
+    });
+  }, { rootMargin: '600px' });
+
+  if (sentinel) scrollObserver.observe(sentinel);
+}
+
+function loadMoreItems() {
+  const added = buildNextBatch();
+  if (added > 0) {
+    // Append new items to the current grid
+    const grid = flow.querySelector('.grid-section');
+    if (grid) {
+      for (let i = loadedCount - added; i < loadedCount; i++) {
+        grid.appendChild(allGridItems[i]);
+      }
+      renderedCount = loadedCount;
+    }
+    observeVideos();
+
+    // Update sentinel
+    if (sentinel) sentinel.remove();
+    const newSentinel = createSentinel();
+    if (newSentinel) {
+      flow.appendChild(newSentinel);
+      scrollObserver.observe(newSentinel);
+    }
   }
-  html += `<button class="mobile-share-btn" data-id="${item.id}">share</button>`;
-  html += '</div>';
-  if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
-  if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
-  html += '</div>';
-  return html;
 }
 
-// Share-only row for images without JSON metadata
-function buildMobileShare(item) {
-  return `<div class="mobile-detail"><div class="mobile-detail-row"><button class="mobile-share-btn" data-id="${item.id}">share</button></div></div>`;
-}
-
-function buildAudioBlock(item) {
-  const label = item.title || '';
-  return `
-    <div class="audio-player" data-src="${item.full}">
-      <div class="audio-btn">▶</div>
-      ${label ? `<div class="audio-label">${label}</div>` : ''}
-    </div>`;
-}
-
-// === Render: flat grid (no expanded) ===
-
-// === Video autoplay: only when visible in viewport ===
+// === Video autoplay: only when visible ===
 
 const videoObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
@@ -137,42 +206,65 @@ function observeVideos() {
   });
 }
 
+// === Render: flat grid ===
+
 function renderFlat() {
   flow.innerHTML = '';
   const grid = document.createElement('div');
   grid.className = 'grid-section';
-  allGridItems.forEach(el => grid.appendChild(el));
+
+  for (let i = 0; i < loadedCount; i++) {
+    if (allGridItems[i]) grid.appendChild(allGridItems[i]);
+  }
+
   flow.appendChild(grid);
+  renderedCount = loadedCount;
   gridBefore = grid;
   gridAfter = null;
+
+  // Add sentinel
+  const s = createSentinel();
+  if (s) {
+    flow.appendChild(s);
+    if (scrollObserver) scrollObserver.observe(s);
+  }
+
   observeVideos();
 }
 
 // === Render: split grid around expanded item ===
 
 function renderSplit(itemIndex) {
+  // Ensure all items up to and past the target are built
+  ensureBuiltUpTo(Math.min(itemIndex + getBatchSize(), items.length - 1));
+
   flow.innerHTML = '';
 
-  // Grid before
   gridBefore = document.createElement('div');
   gridBefore.className = 'grid-section';
   for (let i = 0; i < itemIndex; i++) {
-    gridBefore.appendChild(allGridItems[i]);
+    if (allGridItems[i]) gridBefore.appendChild(allGridItems[i]);
   }
   flow.appendChild(gridBefore);
 
-  // Expanded element (already created)
   if (expandedEl) {
     flow.appendChild(expandedEl);
   }
 
-  // Grid after
   gridAfter = document.createElement('div');
   gridAfter.className = 'grid-section';
-  for (let i = itemIndex + 1; i < allGridItems.length; i++) {
-    gridAfter.appendChild(allGridItems[i]);
+  for (let i = itemIndex + 1; i < loadedCount; i++) {
+    if (allGridItems[i]) gridAfter.appendChild(allGridItems[i]);
   }
   flow.appendChild(gridAfter);
+
+  // Add sentinel after gridAfter
+  const s = createSentinel();
+  if (s) {
+    flow.appendChild(s);
+    if (scrollObserver) scrollObserver.observe(s);
+  }
+
   observeVideos();
 }
 
@@ -191,6 +283,9 @@ function openFromGrid(id) {
   const item = items[idx];
   if (!item) return;
 
+  // Ensure this item's DOM node exists
+  ensureBuiltUpTo(idx);
+
   lastClickedGridItem = allGridItems[idx];
 
   if (item.type === 'image' || item.type === 'video') {
@@ -198,7 +293,6 @@ function openFromGrid(id) {
   } else if (item.type === 'text') {
     expandedEl = createExpandedText(item);
   } else {
-    // audio or unknown — don't expand
     return;
   }
 
@@ -271,6 +365,33 @@ function buildDetailHtml(item) {
   if (item.description) html += `<div class="detail-description">${item.description}</div>`;
   if (item.link) html += `<a class="detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
   return html;
+}
+
+function buildMobileDetail(item) {
+  let html = '<div class="mobile-detail">';
+  html += '<div class="mobile-detail-row">';
+  if (item.title) {
+    html += `<span class="mobile-detail-title">${item.title}</span>`;
+  }
+  html += `<button class="mobile-share-btn" data-id="${item.id}">share</button>`;
+  html += '</div>';
+  if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
+  if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
+  html += '</div>';
+  return html;
+}
+
+function buildMobileShare(item) {
+  return `<div class="mobile-detail"><div class="mobile-detail-row"><button class="mobile-share-btn" data-id="${item.id}">share</button></div></div>`;
+}
+
+function buildAudioBlock(item) {
+  const label = item.title || '';
+  return `
+    <div class="audio-player" data-src="${item.full}">
+      <div class="audio-btn">▶</div>
+      ${label ? `<div class="audio-label">${label}</div>` : ''}
+    </div>`;
 }
 
 // === Create expanded elements ===
@@ -353,8 +474,6 @@ function createExpandedText(item) {
 function navigateArrow(id) {
   const item = items.find(i => i.id === id);
   if (!item) return;
-
-  // Skip audio items when navigating
   if (item.type === 'audio') return;
 
   expandedId = id;
@@ -362,11 +481,14 @@ function navigateArrow(id) {
   history.replaceState(null, '', '#' + id);
 
   const idx = getIdx();
+
+  // Ensure target item DOM exists
+  ensureBuiltUpTo(idx);
+
   const currentIsMedia = expandedEl && expandedEl.classList.contains('expanded-photo');
   const nextIsMedia = item.type === 'image' || item.type === 'video';
   const nextIsText = item.type === 'text';
 
-  // If type changes, or going to/from video, replace expanded element
   const currentHasImgFront = expandedEl && expandedEl.querySelector('#img-front');
   const nextIsImage = item.type === 'image';
   const canCrossfade = currentIsMedia && nextIsImage && currentHasImgFront;
@@ -465,6 +587,9 @@ const hash = window.location.hash.slice(1);
 if (hash) {
   const idx = items.findIndex(i => i.id === hash);
   if (idx !== -1) {
+    // Ensure all items up to target are built
+    ensureBuiltUpTo(idx);
+
     if (isDesktop()) {
       const item = items[idx];
       expandedId = item.id;
@@ -475,9 +600,12 @@ if (hash) {
         if (expandedEl) expandedEl.scrollIntoView({ block: 'start' });
       });
     } else {
-      // Mobile: wait for target image to load, then scroll
+      // Mobile: ensure built, then scroll to grid item
       const gridItem = allGridItems[idx];
       if (gridItem) {
+        // Need to re-render flat with all items up to target
+        renderFlat();
+
         const img = gridItem.querySelector('img');
         const video = gridItem.querySelector('video');
         const target = img || video;
@@ -487,15 +615,11 @@ if (hash) {
         }
 
         if (target && !target.complete) {
-          // Image not loaded yet — wait for it
           target.addEventListener('load', () => {
-            // Small delay to let layout settle
             setTimeout(doScroll, 50);
           }, { once: true });
-          // Fallback: scroll anyway after 2s
           setTimeout(doScroll, 2000);
         } else {
-          // Already loaded or no media
           setTimeout(doScroll, 100);
         }
       }
@@ -535,7 +659,6 @@ document.addEventListener('click', (e) => {
   if (!src || !btn) return;
 
   if (currentAudio && currentAudioBtn === btn) {
-    // Toggle off
     currentAudio.pause();
     currentAudio = null;
     currentAudioBtn = null;
@@ -544,7 +667,6 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  // Stop previous
   if (currentAudio) {
     currentAudio.pause();
     if (currentAudioBtn) {
@@ -577,7 +699,16 @@ if (!hash) {
     const saved = localStorage.getItem(SCROLL_KEY);
     if (saved) {
       const pos = parseInt(saved, 10);
-      // Wait for images to start loading, then restore
+      // Load enough batches to fill the scroll position
+      // Estimate: each item ~300px height on mobile, ~200px on desktop (in grid rows)
+      const estimatedItemHeight = isDesktop() ? 80 : 300;
+      const columnsCount = isDesktop() ? 3 : 1;
+      const neededItems = Math.ceil((pos / estimatedItemHeight) * columnsCount) + getBatchSize();
+      while (loadedCount < Math.min(neededItems, items.length)) {
+        buildNextBatch();
+      }
+      renderFlat();
+
       requestAnimationFrame(() => {
         setTimeout(() => { window.scrollTo(0, pos); }, 100);
       });
@@ -585,7 +716,7 @@ if (!hash) {
   } catch (e) {}
 }
 
-// Save scroll position periodically (disabled briefly on hash navigation)
+// Save scroll position periodically
 let scrollTimer = null;
 let scrollSaveEnabled = !hash;
 if (hash) setTimeout(() => { scrollSaveEnabled = true; }, 3000);
