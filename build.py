@@ -228,9 +228,12 @@ def process_videos():
 
 
 def process_audio():
-    """Process audio files — just copy to media/."""
+    """Process audio files — copy to media/, find cover image if exists."""
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
+    THUMB_DIR.mkdir(parents=True, exist_ok=True)
     audio_items = []
+
+    import shutil
 
     for src_path in sorted(SRC_DIR.iterdir()):
         if src_path.suffix.lower() not in AUDIO_EXTENSIONS:
@@ -240,7 +243,6 @@ def process_audio():
         dest = MEDIA_DIR / src_path.name
         print(f"  [aud] {src_path.name} → {item_id}")
 
-        import shutil
         if not dest.exists() or src_path.stat().st_mtime > dest.stat().st_mtime:
             shutil.copy2(src_path, dest)
 
@@ -253,6 +255,29 @@ def process_audio():
         }
         if meta.get("title"):
             item["title"] = meta["title"]
+
+        # Look for cover image with same stem (e.g. voice_01.jpg for voice_01.mp3)
+        cover_path = None
+        for ext in IMAGE_EXTENSIONS:
+            candidate = src_path.with_suffix(ext)
+            if candidate.exists():
+                cover_path = candidate
+                break
+
+        if cover_path:
+            name = src_path.stem
+            img = Image.open(cover_path)
+            try:
+                img = ImageOps.exif_transpose(img)
+            except Exception:
+                pass
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            thumb = resize_image(img, config.THUMB_LONG_EDGE)
+            thumb.save(THUMB_DIR / f"{name}.jpg", "JPEG",
+                       quality=config.THUMB_QUALITY, optimize=True)
+            item["cover"] = f"photos/thumb/{name}.jpg"
+            print(f"         cover: {cover_path.name}")
 
         audio_items.append(item)
 

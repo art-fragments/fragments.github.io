@@ -387,10 +387,16 @@ function buildMobileShare(item) {
 
 function buildAudioBlock(item) {
   const label = item.title || '';
+  const hasCover = item.cover;
+  const coverStyle = hasCover ? `background-image: url('${item.cover}'); background-size: cover; background-position: center;` : '';
   return `
-    <div class="audio-player" data-src="${item.full}">
-      <div class="audio-btn">▶</div>
-      ${label ? `<div class="audio-label">${label}</div>` : ''}
+    <div class="audio-player ${hasCover ? 'has-cover' : ''}" data-src="${item.full}" style="${coverStyle}">
+      <div class="audio-overlay">
+        <div class="audio-btn">▶</div>
+        ${label ? `<div class="audio-label">${label}</div>` : ''}
+        <div class="audio-duration"></div>
+        <div class="audio-progress"><div class="audio-progress-fill"></div></div>
+      </div>
     </div>`;
 }
 
@@ -650,7 +656,62 @@ document.addEventListener('click', (e) => {
 
 // Audio player (event delegation)
 let currentAudio = null;
-let currentAudioBtn = null;
+let currentPlayer = null;
+let audioRaf = null;
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+}
+
+function updateAudioProgress() {
+  if (!currentAudio || !currentPlayer) return;
+  const fill = currentPlayer.querySelector('.audio-progress-fill');
+  const dur = currentPlayer.querySelector('.audio-duration');
+  if (fill && currentAudio.duration) {
+    fill.style.width = `${(currentAudio.currentTime / currentAudio.duration) * 100}%`;
+  }
+  if (dur && currentAudio.duration) {
+    dur.textContent = `${formatTime(currentAudio.currentTime)} / ${formatTime(currentAudio.duration)}`;
+  }
+  audioRaf = requestAnimationFrame(updateAudioProgress);
+}
+
+function stopAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  if (audioRaf) {
+    cancelAnimationFrame(audioRaf);
+    audioRaf = null;
+  }
+  if (currentPlayer) {
+    const btn = currentPlayer.querySelector('.audio-btn');
+    const fill = currentPlayer.querySelector('.audio-progress-fill');
+    if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+    if (fill) fill.style.width = '0%';
+    currentPlayer.classList.remove('active');
+    currentPlayer = null;
+  }
+}
+
+// Load duration on page load for all audio players
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.audio-player').forEach(player => {
+    const src = player.dataset.src;
+    if (!src) return;
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.src = src;
+    audio.addEventListener('loadedmetadata', () => {
+      const dur = player.querySelector('.audio-duration');
+      if (dur) dur.textContent = formatTime(audio.duration);
+    });
+  });
+});
+
 document.addEventListener('click', (e) => {
   const player = e.target.closest('.audio-player');
   if (!player) return;
@@ -658,35 +719,26 @@ document.addEventListener('click', (e) => {
   const btn = player.querySelector('.audio-btn');
   if (!src || !btn) return;
 
-  if (currentAudio && currentAudioBtn === btn) {
-    currentAudio.pause();
-    currentAudio = null;
-    currentAudioBtn = null;
-    btn.textContent = '▶';
-    btn.classList.remove('playing');
+  // Toggle off
+  if (currentPlayer === player && currentAudio) {
+    stopAudio();
     return;
   }
 
-  if (currentAudio) {
-    currentAudio.pause();
-    if (currentAudioBtn) {
-      currentAudioBtn.textContent = '▶';
-      currentAudioBtn.classList.remove('playing');
-    }
-  }
+  // Stop previous
+  stopAudio();
 
   const audio = new Audio(src);
   audio.play();
   btn.textContent = '■';
   btn.classList.add('playing');
+  player.classList.add('active');
   currentAudio = audio;
-  currentAudioBtn = btn;
+  currentPlayer = player;
+  audioRaf = requestAnimationFrame(updateAudioProgress);
 
   audio.addEventListener('ended', () => {
-    btn.textContent = '▶';
-    btn.classList.remove('playing');
-    currentAudio = null;
-    currentAudioBtn = null;
+    stopAudio();
   });
 });
 

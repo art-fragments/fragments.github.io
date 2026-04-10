@@ -384,37 +384,89 @@ img, video {
 
 /* === Audio blocks === */
 .grid-item .audio-player {
+  position: relative;
+  min-height: 200px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-direction: column;
-  min-height: 160px;
-  padding: 28px 24px;
   cursor: pointer;
+  overflow: hidden;
+  background: #111;
+}
+
+.grid-item .audio-player.has-cover {
+  background: #111;
+}
+
+.audio-overlay {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  padding: 28px 24px;
+  background: rgba(0, 0, 0, 0.25);
+  transition: background 0.3s ease;
+}
+
+.audio-player:hover .audio-overlay {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.audio-player.active .audio-overlay {
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .audio-btn {
-  font-size: 28px;
-  color: #999;
-  transition: color 0.2s;
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.2s, border-color 0.2s;
   user-select: none;
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #ddd;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
   border-radius: 50%;
 }
-.audio-btn:hover { color: #333; border-color: #999; }
-.audio-btn.playing { color: #333; border-color: #333; }
+.audio-btn:hover { color: #fff; border-color: rgba(255, 255, 255, 0.7); }
+.audio-btn.playing { color: #fff; border-color: rgba(255, 255, 255, 0.8); }
 
 .audio-label {
   font-family: 'DM Mono', monospace;
   font-size: 13px;
-  color: #aaa;
+  color: rgba(255, 255, 255, 0.7);
   margin-top: 12px;
   text-align: center;
+}
+
+.audio-duration {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 8px;
+  min-height: 14px;
+}
+
+.audio-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.audio-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: rgba(255, 255, 255, 0.6);
+  transition: width 0.1s linear;
 }
 
 /* === Mobile detail under images === */
@@ -2705,10 +2757,16 @@ function buildMobileShare(item) {
 
 function buildAudioBlock(item) {
   const label = item.title || '';
+  const hasCover = item.cover;
+  const coverStyle = hasCover ? `background-image: url('${item.cover}'); background-size: cover; background-position: center;` : '';
   return `
-    <div class="audio-player" data-src="${item.full}">
-      <div class="audio-btn">▶</div>
-      ${label ? `<div class="audio-label">${label}</div>` : ''}
+    <div class="audio-player ${hasCover ? 'has-cover' : ''}" data-src="${item.full}" style="${coverStyle}">
+      <div class="audio-overlay">
+        <div class="audio-btn">▶</div>
+        ${label ? `<div class="audio-label">${label}</div>` : ''}
+        <div class="audio-duration"></div>
+        <div class="audio-progress"><div class="audio-progress-fill"></div></div>
+      </div>
     </div>`;
 }
 
@@ -2968,7 +3026,62 @@ document.addEventListener('click', (e) => {
 
 // Audio player (event delegation)
 let currentAudio = null;
-let currentAudioBtn = null;
+let currentPlayer = null;
+let audioRaf = null;
+
+function formatTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec < 10 ? '0' : ''}${sec}`;
+}
+
+function updateAudioProgress() {
+  if (!currentAudio || !currentPlayer) return;
+  const fill = currentPlayer.querySelector('.audio-progress-fill');
+  const dur = currentPlayer.querySelector('.audio-duration');
+  if (fill && currentAudio.duration) {
+    fill.style.width = `${(currentAudio.currentTime / currentAudio.duration) * 100}%`;
+  }
+  if (dur && currentAudio.duration) {
+    dur.textContent = `${formatTime(currentAudio.currentTime)} / ${formatTime(currentAudio.duration)}`;
+  }
+  audioRaf = requestAnimationFrame(updateAudioProgress);
+}
+
+function stopAudio() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio = null;
+  }
+  if (audioRaf) {
+    cancelAnimationFrame(audioRaf);
+    audioRaf = null;
+  }
+  if (currentPlayer) {
+    const btn = currentPlayer.querySelector('.audio-btn');
+    const fill = currentPlayer.querySelector('.audio-progress-fill');
+    if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+    if (fill) fill.style.width = '0%';
+    currentPlayer.classList.remove('active');
+    currentPlayer = null;
+  }
+}
+
+// Load duration on page load for all audio players
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.audio-player').forEach(player => {
+    const src = player.dataset.src;
+    if (!src) return;
+    const audio = new Audio();
+    audio.preload = 'metadata';
+    audio.src = src;
+    audio.addEventListener('loadedmetadata', () => {
+      const dur = player.querySelector('.audio-duration');
+      if (dur) dur.textContent = formatTime(audio.duration);
+    });
+  });
+});
+
 document.addEventListener('click', (e) => {
   const player = e.target.closest('.audio-player');
   if (!player) return;
@@ -2976,35 +3089,26 @@ document.addEventListener('click', (e) => {
   const btn = player.querySelector('.audio-btn');
   if (!src || !btn) return;
 
-  if (currentAudio && currentAudioBtn === btn) {
-    currentAudio.pause();
-    currentAudio = null;
-    currentAudioBtn = null;
-    btn.textContent = '▶';
-    btn.classList.remove('playing');
+  // Toggle off
+  if (currentPlayer === player && currentAudio) {
+    stopAudio();
     return;
   }
 
-  if (currentAudio) {
-    currentAudio.pause();
-    if (currentAudioBtn) {
-      currentAudioBtn.textContent = '▶';
-      currentAudioBtn.classList.remove('playing');
-    }
-  }
+  // Stop previous
+  stopAudio();
 
   const audio = new Audio(src);
   audio.play();
   btn.textContent = '■';
   btn.classList.add('playing');
+  player.classList.add('active');
   currentAudio = audio;
-  currentAudioBtn = btn;
+  currentPlayer = player;
+  audioRaf = requestAnimationFrame(updateAudioProgress);
 
   audio.addEventListener('ended', () => {
-    btn.textContent = '▶';
-    btn.classList.remove('playing');
-    currentAudio = null;
-    currentAudioBtn = null;
+    stopAudio();
   });
 });
 
