@@ -88,24 +88,6 @@ body {
   white-space: pre-line;
 }
 
-/* Loud text — short phrases as typographic statements */
-.grid-item.text-block.text-loud {
-  align-items: flex-start;
-  padding: 24px;
-  min-height: 200px;
-  overflow: hidden;
-}
-
-.grid-item.text-block.text-loud .text-content {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(28px, 5vw, 78px);
-  font-weight: 500;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  color: #111;
-  word-break: break-word;
-}
-
 /* Expanded photo */
 .expanded-photo {
   width: 100vw;
@@ -285,17 +267,6 @@ body {
   white-space: pre-line;
 }
 
-.expanded-text.text-loud .text-content-large {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(36px, 7vw, 120px);
-  font-weight: 500;
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-  color: #111;
-  max-width: 900px;
-  word-break: break-word;
-}
-
 @keyframes expandIn {
   from { opacity: 0; }
   to { opacity: 1; }
@@ -376,8 +347,6 @@ body {
   .site-footer { padding: 48px 16px 32px; }
   .grid-item.text-block { padding: 20px 16px; min-height: 100px; }
   .grid-item.text-block .text-content { font-size: 15px; }
-  .grid-item.text-block.text-loud { min-height: 120px; }
-  .grid-item.text-block.text-loud .text-content { font-size: clamp(24px, 8vw, 48px); }
 }
 
 /* Animation — only on initial load */

@@ -17,7 +17,7 @@ FULL_DIR = "photos/full"
 OUTPUT_HTML = "index.html"
 
 # Order
-PINNED_COUNT = 100  # First N items are locked in place, rest shuffled
+PINNED_COUNT = 80  # First N items are locked in place, rest shuffled
 ORDER_FILE = "order_from_new.json"  # Stores pinned item IDs; delete to re-shuffle
 
 # Social links (leave empty to hide)

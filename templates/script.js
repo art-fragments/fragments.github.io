@@ -54,7 +54,7 @@ function isDesktop() {
 
 function buildGridItem(item, i) {
   const div = document.createElement('div');
-  div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '') + (item.type === 'video' ? ' video-block' : '');
+  div.className = 'grid-item entering' + (item.type === 'text' ? ' text-block' : '') + (item.type === 'video' ? ' video-block' : '') + (item.type === 'embed' ? ' embed-block' : '');
   div.dataset.itemId = item.id;
   div.dataset.itemIndex = i;
 
@@ -76,6 +76,9 @@ function buildGridItem(item, i) {
     if (!isDesktop()) {
       div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
     }
+  } else if (item.type === 'embed') {
+    div.innerHTML = buildEmbedBlock(item);
+    div.style.cursor = 'default';
   } else if (item.type === 'audio') {
     div.innerHTML = buildAudioBlock(item);
   } else if (item.type === 'image') {
@@ -88,6 +91,8 @@ function buildGridItem(item, i) {
       div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
     }
   } else {
+    const isLoud = item.text.length <= 50;
+    if (isLoud) div.classList.add('text-loud');
     div.innerHTML = `<div class="text-content">${item.text}</div>`;
     if (isDesktop()) {
       div.style.cursor = 'pointer';
@@ -392,6 +397,7 @@ function buildAudioBlock(item) {
   const label = item.title || '';
   const hasCover = item.cover;
   const coverStyle = hasCover ? `background-image: url('${item.cover}'); background-size: cover; background-position: center;` : '';
+  const linkHtml = item.link ? `<a class="audio-link" href="${item.link}" target="_blank" rel="noopener">${item.link_text || 'listen'} →</a>` : '';
   return `
     <div class="audio-player ${hasCover ? 'has-cover' : ''}" data-src="${item.full}" style="${coverStyle}">
       <div class="audio-overlay">
@@ -401,11 +407,22 @@ function buildAudioBlock(item) {
             ${label ? `<div class="audio-label">${label}</div>` : ''}
             <div class="audio-time">
               <span class="audio-duration"></span>
+              ${linkHtml}
             </div>
           </div>
         </div>
         <div class="audio-progress"><div class="audio-progress-fill"></div></div>
       </div>
+    </div>`;
+}
+
+function buildEmbedBlock(item) {
+  const title = item.title || '';
+  const linkHtml = item.link ? `<a class="embed-link" href="${item.link}" target="_blank" rel="noopener">${item.link_text || 'listen'} →</a>` : '';
+  return `
+    <div class="embed-container">
+      <iframe src="${item.embed_url}" frameborder="0" allowtransparency="true" allow="autoplay" loading="lazy"></iframe>
+      ${(title || linkHtml) ? `<div class="embed-meta">${title ? `<span class="embed-title">${title}</span>` : ''}${linkHtml}</div>` : ''}
     </div>`;
 }
 
@@ -468,8 +485,9 @@ function createExpandedText(item) {
   const idx = getIdx();
   const hasPrev = idx > 0;
   const hasNext = idx < items.length - 1;
+  const isLoud = item.text.length <= 50;
   const el = document.createElement('div');
-  el.className = 'expanded-text';
+  el.className = 'expanded-text' + (isLoud ? ' text-loud' : '');
   el.id = item.id;
   el.innerHTML = `
     <button class="close-btn" title="Close">&times;</button>
@@ -487,9 +505,23 @@ function createExpandedText(item) {
 // === Arrow navigation ===
 
 function navigateArrow(id) {
-  const item = items.find(i => i.id === id);
+  let item = items.find(i => i.id === id);
   if (!item) return;
-  if (item.type === 'audio') return;
+
+  // Skip audio and embed items — find next expandable item in same direction
+  const skipTypes = new Set(['audio', 'embed']);
+  if (skipTypes.has(item.type)) {
+    const clickedIdx = items.indexOf(item);
+    const currentIdx = getIdx();
+    const dir = clickedIdx > currentIdx ? 1 : -1;
+    let nextIdx = clickedIdx;
+    while (nextIdx >= 0 && nextIdx < items.length && skipTypes.has(items[nextIdx].type)) {
+      nextIdx += dir;
+    }
+    if (nextIdx < 0 || nextIdx >= items.length) return;
+    item = items[nextIdx];
+    id = item.id;
+  }
 
   expandedId = id;
   isEnlarged = false;
@@ -684,6 +716,7 @@ function updateAudioProgress() {
   if (dur && currentAudio.duration) {
     dur.textContent = `${formatTime(currentAudio.currentTime)} / ${formatTime(currentAudio.duration)}`;
   }
+  updateStickyProgress();
   audioRaf = requestAnimationFrame(updateAudioProgress);
 }
 
@@ -704,6 +737,96 @@ function stopAudio() {
     currentPlayer.classList.remove('active');
     currentPlayer = null;
   }
+  hideStickyPlayer();
+}
+
+// === Sticky mini-player ===
+
+let stickyEl = null;
+let stickyObserver = null;
+
+function createStickyPlayer() {
+  if (stickyEl) return;
+  stickyEl = document.createElement('div');
+  stickyEl.className = 'sticky-player';
+  stickyEl.innerHTML = `
+    <button class="sticky-btn" type="button">${ICON_PAUSE}</button>
+    <div class="sticky-info">
+      <span class="sticky-label"></span>
+      <span class="sticky-time"></span>
+    </div>
+    <div class="sticky-progress"><div class="sticky-progress-fill"></div></div>
+  `;
+  document.body.appendChild(stickyEl);
+
+  stickyEl.querySelector('.sticky-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!currentAudio) return;
+    const btn = stickyEl.querySelector('.sticky-btn');
+    if (currentAudio.paused) {
+      currentAudio.play();
+      if (btn) btn.innerHTML = ICON_PAUSE;
+      // Also update card button
+      if (currentPlayer) {
+        const cardBtn = currentPlayer.querySelector('.audio-btn');
+        if (cardBtn) { cardBtn.innerHTML = ICON_PAUSE; cardBtn.classList.add('playing'); }
+      }
+      audioRaf = requestAnimationFrame(updateAudioProgress);
+    } else {
+      currentAudio.pause();
+      if (btn) btn.innerHTML = ICON_PLAY;
+      if (audioRaf) { cancelAnimationFrame(audioRaf); audioRaf = null; }
+      // Also update card button
+      if (currentPlayer) {
+        const cardBtn = currentPlayer.querySelector('.audio-btn');
+        if (cardBtn) { cardBtn.innerHTML = ICON_PLAY; cardBtn.classList.remove('playing'); }
+      }
+    }
+  });
+}
+
+function showStickyPlayer(item) {
+  createStickyPlayer();
+  const label = stickyEl.querySelector('.sticky-label');
+  if (label) label.textContent = item?.title || '';
+  stickyEl.classList.add('visible');
+}
+
+function hideStickyPlayer() {
+  if (stickyEl) stickyEl.classList.remove('visible');
+  if (stickyObserver) {
+    stickyObserver.disconnect();
+    stickyObserver = null;
+  }
+}
+
+function updateStickyProgress() {
+  if (!stickyEl || !currentAudio || !currentAudio.duration) return;
+  const fill = stickyEl.querySelector('.sticky-progress-fill');
+  const time = stickyEl.querySelector('.sticky-time');
+  if (fill) fill.style.width = `${(currentAudio.currentTime / currentAudio.duration) * 100}%`;
+  if (time) time.textContent = `${formatTime(currentAudio.currentTime)} / ${formatTime(currentAudio.duration)}`;
+}
+
+function startStickyObserver() {
+  if (stickyObserver) stickyObserver.disconnect();
+  if (!currentPlayer) return;
+
+  stickyObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!currentAudio) { hideStickyPlayer(); return; }
+      if (entry.isIntersecting) {
+        if (stickyEl) stickyEl.classList.remove('visible');
+      } else {
+        // Find the item for title
+        const itemId = currentPlayer.closest('.grid-item')?.dataset?.itemId;
+        const item = items.find(i => i.id === itemId);
+        showStickyPlayer(item);
+      }
+    });
+  }, { threshold: 0 });
+
+  stickyObserver.observe(currentPlayer);
 }
 
 // Load duration on page load for all audio players
@@ -745,6 +868,7 @@ document.addEventListener('click', (e) => {
   currentAudio = audio;
   currentPlayer = player;
   audioRaf = requestAnimationFrame(updateAudioProgress);
+  startStickyObserver();
 
   audio.addEventListener('ended', () => {
     stopAudio();

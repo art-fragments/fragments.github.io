@@ -255,6 +255,11 @@ def process_audio():
         }
         if meta.get("title"):
             item["title"] = meta["title"]
+        if meta.get("link"):
+            item["link"] = meta["link"]
+            item["link_text"] = meta.get("link_text", "listen")
+        if meta.get("description"):
+            item["description"] = meta["description"]
 
         # Look for cover image with same stem (e.g. voice_01.jpg for voice_01.mp3)
         cover_path = None
@@ -282,6 +287,58 @@ def process_audio():
         audio_items.append(item)
 
     return audio_items
+
+
+def process_embeds():
+    """Process standalone .json files with type=embed (bandcamp, soundcloud, etc).
+    
+    These are JSON files in src/ that are NOT sidecars for other files.
+    They must contain {"type": "embed", "embed_url": "..."}.
+    """
+    embed_items = []
+
+    # Collect stems of all non-json files to skip sidecar jsons
+    other_stems = set()
+    for f in SRC_DIR.iterdir():
+        if f.suffix.lower() != '.json':
+            other_stems.add(f.stem)
+
+    for src_path in sorted(SRC_DIR.iterdir()):
+        if src_path.suffix.lower() != '.json':
+            continue
+        if src_path.stem in other_stems:
+            continue
+
+        try:
+            data = json.loads(src_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        if data.get("type") != "embed":
+            continue
+
+        embed_url = data.get("embed_url", "")
+        if not embed_url:
+            continue
+
+        item_id = make_short_id(src_path.stem)
+        print(f"  [emb] {src_path.name} → {item_id}")
+
+        item = {
+            "type": "embed",
+            "id": item_id,
+            "embed_url": embed_url,
+            "_src_name": src_path.name,
+        }
+        if data.get("title"):
+            item["title"] = data["title"]
+        if data.get("link"):
+            item["link"] = data["link"]
+            item["link_text"] = data.get("link_text", "listen")
+
+        embed_items.append(item)
+
+    return embed_items
 
 
 def shuffle_items(all_items):
@@ -317,6 +374,12 @@ def shuffle_items(all_items):
 
         result = pinned + rest
         print(f"  Order: {len(pinned)} pinned + {len(rest)} shuffled")
+        if rest:
+            print(f"  New/unpinned IDs (add to {order_path} to pin):")
+            for item in rest:
+                t = item.get('type', '?')
+                name = item.get('_src_name', item['id'])
+                print(f"    {item['id']}  [{t}]  {name}")
     else:
         # First time: full shuffle
         rng = random.Random(len(all_items))
@@ -565,13 +628,15 @@ def main():
     text_items = process_texts()
     video_items = process_videos()
     audio_items = process_audio()
-    all_items = image_items + text_items + video_items + audio_items
+    embed_items = process_embeds()
+    all_items = image_items + text_items + video_items + audio_items + embed_items
 
     counts = []
     if image_items: counts.append(f"{len(image_items)} images")
     if text_items: counts.append(f"{len(text_items)} text blocks")
     if video_items: counts.append(f"{len(video_items)} videos")
     if audio_items: counts.append(f"{len(audio_items)} audio")
+    if embed_items: counts.append(f"{len(embed_items)} embeds")
     print(f"\n  {', '.join(counts)}")
 
     if not all_items:
