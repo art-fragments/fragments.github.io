@@ -385,6 +385,9 @@ function buildMobileShare(item) {
   return `<div class="mobile-detail"><div class="mobile-detail-row"><button class="mobile-share-btn" data-id="${item.id}">share</button></div></div>`;
 }
 
+const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><polygon points="6,3 20,12 6,21"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+
 function buildAudioBlock(item) {
   const label = item.title || '';
   const hasCover = item.cover;
@@ -392,9 +395,15 @@ function buildAudioBlock(item) {
   return `
     <div class="audio-player ${hasCover ? 'has-cover' : ''}" data-src="${item.full}" style="${coverStyle}">
       <div class="audio-overlay">
-        <div class="audio-btn">▶</div>
-        ${label ? `<div class="audio-label">${label}</div>` : ''}
-        <div class="audio-duration"></div>
+        <div class="audio-controls">
+          <button class="audio-btn" type="button">${ICON_PLAY}</button>
+          <div class="audio-info">
+            ${label ? `<div class="audio-label">${label}</div>` : ''}
+            <div class="audio-time">
+              <span class="audio-duration"></span>
+            </div>
+          </div>
+        </div>
         <div class="audio-progress"><div class="audio-progress-fill"></div></div>
       </div>
     </div>`;
@@ -690,7 +699,7 @@ function stopAudio() {
   if (currentPlayer) {
     const btn = currentPlayer.querySelector('.audio-btn');
     const fill = currentPlayer.querySelector('.audio-progress-fill');
-    if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+    if (btn) { btn.innerHTML = ICON_PLAY; btn.classList.remove('playing'); }
     if (fill) fill.style.width = '0%';
     currentPlayer.classList.remove('active');
     currentPlayer = null;
@@ -730,7 +739,7 @@ document.addEventListener('click', (e) => {
 
   const audio = new Audio(src);
   audio.play();
-  btn.textContent = '■';
+  btn.innerHTML = ICON_PAUSE;
   btn.classList.add('playing');
   player.classList.add('active');
   currentAudio = audio;

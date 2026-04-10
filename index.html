@@ -387,11 +387,10 @@ img, video {
   position: relative;
   min-height: 200px;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
   cursor: pointer;
   overflow: hidden;
-  background: #111;
+  background: #1a1a1a;
 }
 
 .grid-item .audio-player.has-cover {
@@ -403,70 +402,98 @@ img, video {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   width: 100%;
-  height: 100%;
   min-height: 200px;
-  padding: 28px 24px;
-  background: rgba(0, 0, 0, 0.25);
+  padding: 0;
+  background: rgba(0, 0, 0, 0.2);
   transition: background 0.3s ease;
 }
 
 .audio-player:hover .audio-overlay {
-  background: rgba(0, 0, 0, 0.35);
+  background: rgba(0, 0, 0, 0.32);
 }
 
 .audio-player.active .audio-overlay {
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.38);
+}
+
+.audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px 14px;
 }
 
 .audio-btn {
-  font-size: 24px;
-  color: rgba(255, 255, 255, 0.85);
-  transition: color 0.2s, border-color 0.2s;
-  user-select: none;
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
+  outline: none;
 }
-.audio-btn:hover { color: #fff; border-color: rgba(255, 255, 255, 0.7); }
-.audio-btn.playing { color: #fff; border-color: rgba(255, 255, 255, 0.8); }
+.audio-btn svg {
+  display: block;
+}
+.audio-btn:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+  color: #fff;
+  background: rgba(0, 0, 0, 0.4);
+}
+.audio-btn.playing {
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #fff;
+}
+
+.audio-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
 
 .audio-label {
   font-family: 'DM Mono', monospace;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.7);
-  margin-top: 12px;
-  text-align: center;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.audio-time {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .audio-duration {
   font-family: 'DM Mono', monospace;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
-  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.45);
   min-height: 14px;
 }
 
 .audio-progress {
-  position: absolute;
-  bottom: 0;
-  left: 0;
   width: 100%;
   height: 3px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .audio-progress-fill {
   height: 100%;
   width: 0%;
-  background: rgba(255, 255, 255, 0.6);
-  transition: width 0.1s linear;
+  background: rgba(255, 255, 255, 0.55);
+  transition: width 0.15s linear;
 }
 
 /* === Mobile detail under images === */
@@ -2755,6 +2782,9 @@ function buildMobileShare(item) {
   return `<div class="mobile-detail"><div class="mobile-detail-row"><button class="mobile-share-btn" data-id="${item.id}">share</button></div></div>`;
 }
 
+const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><polygon points="6,3 20,12 6,21"/></svg>';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22"><rect x="5" y="3" width="4" height="18"/><rect x="15" y="3" width="4" height="18"/></svg>';
+
 function buildAudioBlock(item) {
   const label = item.title || '';
   const hasCover = item.cover;
@@ -2762,9 +2792,15 @@ function buildAudioBlock(item) {
   return `
     <div class="audio-player ${hasCover ? 'has-cover' : ''}" data-src="${item.full}" style="${coverStyle}">
       <div class="audio-overlay">
-        <div class="audio-btn">▶</div>
-        ${label ? `<div class="audio-label">${label}</div>` : ''}
-        <div class="audio-duration"></div>
+        <div class="audio-controls">
+          <button class="audio-btn" type="button">${ICON_PLAY}</button>
+          <div class="audio-info">
+            ${label ? `<div class="audio-label">${label}</div>` : ''}
+            <div class="audio-time">
+              <span class="audio-duration"></span>
+            </div>
+          </div>
+        </div>
         <div class="audio-progress"><div class="audio-progress-fill"></div></div>
       </div>
     </div>`;
@@ -3060,7 +3096,7 @@ function stopAudio() {
   if (currentPlayer) {
     const btn = currentPlayer.querySelector('.audio-btn');
     const fill = currentPlayer.querySelector('.audio-progress-fill');
-    if (btn) { btn.textContent = '▶'; btn.classList.remove('playing'); }
+    if (btn) { btn.innerHTML = ICON_PLAY; btn.classList.remove('playing'); }
     if (fill) fill.style.width = '0%';
     currentPlayer.classList.remove('active');
     currentPlayer = null;
@@ -3100,7 +3136,7 @@ document.addEventListener('click', (e) => {
 
   const audio = new Audio(src);
   audio.play();
-  btn.textContent = '■';
+  btn.innerHTML = ICON_PAUSE;
   btn.classList.add('playing');
   player.classList.add('active');
   currentAudio = audio;
