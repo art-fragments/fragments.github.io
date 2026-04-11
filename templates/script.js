@@ -91,7 +91,7 @@ function buildGridItem(item, i) {
       div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
     }
   } else {
-    const isLoud = item.text.length <= 50;
+    const isLoud = item.text.length <= 70;
     if (isLoud) div.classList.add('text-loud');
     div.innerHTML = `<div class="text-content">${item.text}</div>`;
     if (isDesktop()) {
