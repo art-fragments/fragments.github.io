@@ -3,7 +3,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: #e9e9e9;
+  background: #fff;
   color: #000;
   font-family: 'Space Grotesk', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -252,6 +252,20 @@ body {
   transition: color 0.2s;
 }
 .detail-link:hover { color: #333; }
+
+.detail-status {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 300;
+  color: #bbb;
+  margin-top: 6px;
+}
+.detail-status a {
+  color: #aaa;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.detail-status a:hover { color: #555; }
 
 /* Expanded text block */
 .expanded-text {
@@ -664,7 +678,7 @@ img, video {
 
 .mobile-detail-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: baseline;
   gap: 12px;
 }

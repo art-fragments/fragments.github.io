@@ -11,7 +11,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: #e9e9e9;
+  background: #fff;
   color: #000;
   font-family: 'Space Grotesk', sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -260,6 +260,20 @@ body {
   transition: color 0.2s;
 }
 .detail-link:hover { color: #333; }
+
+.detail-status {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  font-weight: 300;
+  color: #bbb;
+  margin-top: 6px;
+}
+.detail-status a {
+  color: #aaa;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+.detail-status a:hover { color: #555; }
 
 /* Expanded text block */
 .expanded-text {
@@ -672,7 +686,7 @@ img, video {
 
 .mobile-detail-row {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   align-items: baseline;
   gap: 12px;
 }
@@ -760,7 +774,8 @@ const items = [
     "title": "PGSRD-trc-06",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-06",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -804,7 +819,8 @@ const items = [
     "title": "PGSRD-trc-07",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-07",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -822,7 +838,8 @@ const items = [
     "type": "image",
     "id": "3a-2248",
     "thumb": "photos/thumb/IMG_2248.jpg",
-    "full": "photos/full/IMG_2248.jpg"
+    "full": "photos/full/IMG_2248.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -862,7 +879,8 @@ const items = [
     "title": "Farbkörper. Fkb-03",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-03",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -912,7 +930,8 @@ const items = [
     "title": "PGSRD-trc-06",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-06",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -943,7 +962,8 @@ const items = [
     "type": "image",
     "id": "d7-1904",
     "thumb": "photos/thumb/IMG_1904.jpg",
-    "full": "photos/full/IMG_1904.jpg"
+    "full": "photos/full/IMG_1904.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -988,13 +1008,15 @@ const items = [
     "type": "image",
     "id": "aa-4151",
     "thumb": "photos/thumb/IMG_4151.jpg",
-    "full": "photos/full/IMG_4151.jpg"
+    "full": "photos/full/IMG_4151.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "6e-4125",
     "thumb": "photos/thumb/IMG_4125.jpg",
-    "full": "photos/full/IMG_4125.jpg"
+    "full": "photos/full/IMG_4125.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1018,13 +1040,15 @@ const items = [
     "type": "image",
     "id": "8c-face",
     "thumb": "photos/thumb/faces-marker (4).jpg",
-    "full": "photos/full/faces-marker (4).jpg"
+    "full": "photos/full/faces-marker (4).jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "7b-5659",
     "thumb": "photos/thumb/IMG_5659.jpg",
-    "full": "photos/full/IMG_5659.jpg"
+    "full": "photos/full/IMG_5659.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1036,25 +1060,29 @@ const items = [
     "type": "image",
     "id": "c9-5677",
     "thumb": "photos/thumb/IMG_5677.jpg",
-    "full": "photos/full/IMG_5677.jpg"
+    "full": "photos/full/IMG_5677.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "fb-2247",
     "thumb": "photos/thumb/IMG_2247.jpg",
-    "full": "photos/full/IMG_2247.jpg"
+    "full": "photos/full/IMG_2247.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "2a-5622",
     "thumb": "photos/thumb/IMG_5622.jpg",
-    "full": "photos/full/IMG_5622.jpg"
+    "full": "photos/full/IMG_5622.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "2d-9338",
     "thumb": "photos/thumb/IMG_9338.jpg",
-    "full": "photos/full/IMG_9338.jpg"
+    "full": "photos/full/IMG_9338.jpg",
+    "status": "available"
   },
   {
     "type": "video",
@@ -1121,7 +1149,8 @@ const items = [
     "title": "Farbkörper. Fkb-04",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-04",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1131,7 +1160,8 @@ const items = [
     "title": "Farbkörper. Fkb-01",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-01",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1189,13 +1219,15 @@ const items = [
     "title": "PGSRD-trc-01",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-01",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
     "id": "89-5966",
     "thumb": "photos/thumb/IMG_5966.jpg",
-    "full": "photos/full/IMG_5966.jpg"
+    "full": "photos/full/IMG_5966.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1248,7 +1280,8 @@ const items = [
     "type": "image",
     "id": "a0-4171",
     "thumb": "photos/thumb/IMG_4171.jpg",
-    "full": "photos/full/IMG_4171.jpg"
+    "full": "photos/full/IMG_4171.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1266,7 +1299,8 @@ const items = [
     "type": "image",
     "id": "f4-1903",
     "thumb": "photos/thumb/IMG_1903.jpg",
-    "full": "photos/full/IMG_1903.jpg"
+    "full": "photos/full/IMG_1903.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1290,13 +1324,15 @@ const items = [
     "type": "image",
     "id": "43-9091",
     "thumb": "photos/thumb/IMG_9091.jpg",
-    "full": "photos/full/IMG_9091.jpg"
+    "full": "photos/full/IMG_9091.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "9c-8215",
     "thumb": "photos/thumb/IMG_8215.jpg",
-    "full": "photos/full/IMG_8215.jpg"
+    "full": "photos/full/IMG_8215.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1336,7 +1372,8 @@ const items = [
     "type": "image",
     "id": "67-1909",
     "thumb": "photos/thumb/IMG_1909.jpg",
-    "full": "photos/full/IMG_1909.jpg"
+    "full": "photos/full/IMG_1909.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1354,7 +1391,8 @@ const items = [
     "type": "image",
     "id": "88-2290",
     "thumb": "photos/thumb/IMG_2290.jpg",
-    "full": "photos/full/IMG_2290.jpg"
+    "full": "photos/full/IMG_2290.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1366,7 +1404,8 @@ const items = [
     "type": "image",
     "id": "e7-face",
     "thumb": "photos/thumb/faces-marker (32).jpg",
-    "full": "photos/full/faces-marker (32).jpg"
+    "full": "photos/full/faces-marker (32).jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1376,7 +1415,8 @@ const items = [
     "title": "Farbkörper. Fkb-03",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-03",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1426,7 +1466,8 @@ const items = [
     "type": "image",
     "id": "ee-4176",
     "thumb": "photos/thumb/IMG_4176.jpg",
-    "full": "photos/full/IMG_4176.jpg"
+    "full": "photos/full/IMG_4176.jpg",
+    "status": "sold"
   },
   {
     "type": "video",
@@ -1468,7 +1509,8 @@ const items = [
     "title": "Farbkörper. Fkb-05",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-05",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1496,7 +1538,8 @@ const items = [
     "title": "PGSRD-trc-01",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-01",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1538,7 +1581,8 @@ const items = [
     "type": "image",
     "id": "d8-9371",
     "thumb": "photos/thumb/IMG_9371.jpg",
-    "full": "photos/full/IMG_9371.jpg"
+    "full": "photos/full/IMG_9371.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1562,7 +1606,8 @@ const items = [
     "type": "image",
     "id": "ed-2293",
     "thumb": "photos/thumb/IMG_2293.jpg",
-    "full": "photos/full/IMG_2293.jpg"
+    "full": "photos/full/IMG_2293.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1574,7 +1619,8 @@ const items = [
     "type": "image",
     "id": "9a-9341",
     "thumb": "photos/thumb/IMG_9341.jpg",
-    "full": "photos/full/IMG_9341.jpg"
+    "full": "photos/full/IMG_9341.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1591,13 +1637,15 @@ const items = [
     "type": "image",
     "id": "fe-2243",
     "thumb": "photos/thumb/IMG_2243.jpg",
-    "full": "photos/full/IMG_2243.jpg"
+    "full": "photos/full/IMG_2243.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "3a-4063",
     "thumb": "photos/thumb/IMG_4063.jpg",
-    "full": "photos/full/IMG_4063.jpg"
+    "full": "photos/full/IMG_4063.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1615,7 +1663,8 @@ const items = [
     "type": "image",
     "id": "2d-9150",
     "thumb": "photos/thumb/IMG_9150.jpg",
-    "full": "photos/full/IMG_9150.jpg"
+    "full": "photos/full/IMG_9150.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1633,7 +1682,8 @@ const items = [
     "type": "image",
     "id": "30-4745",
     "thumb": "photos/thumb/IMG_4745.jpg",
-    "full": "photos/full/IMG_4745.jpg"
+    "full": "photos/full/IMG_4745.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1657,13 +1707,15 @@ const items = [
     "type": "image",
     "id": "44-2287",
     "thumb": "photos/thumb/IMG_2287.jpg",
-    "full": "photos/full/IMG_2287.jpg"
+    "full": "photos/full/IMG_2287.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "ef-2193",
     "thumb": "photos/thumb/IMG_2193.jpg",
-    "full": "photos/full/IMG_2193.jpg"
+    "full": "photos/full/IMG_2193.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1673,7 +1725,8 @@ const items = [
     "title": "PGSRD-trc-01",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-01",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1709,13 +1762,15 @@ const items = [
     "type": "image",
     "id": "7e-9242",
     "thumb": "photos/thumb/IMG_9242.jpg",
-    "full": "photos/full/IMG_9242.jpg"
+    "full": "photos/full/IMG_9242.jpg",
+    "status": "available"
   },
   {
     "type": "image",
     "id": "4b-5974",
     "thumb": "photos/thumb/IMG_5974.jpg",
-    "full": "photos/full/IMG_5974.jpg"
+    "full": "photos/full/IMG_5974.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1739,7 +1794,8 @@ const items = [
     "type": "image",
     "id": "7c-4136",
     "thumb": "photos/thumb/IMG_4136.jpg",
-    "full": "photos/full/IMG_4136.jpg"
+    "full": "photos/full/IMG_4136.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1749,7 +1805,8 @@ const items = [
     "title": "Farbkörper. Fkb-02",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-02",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "sold"
   },
   {
     "type": "text",
@@ -1774,7 +1831,8 @@ const items = [
     "type": "image",
     "id": "66-face",
     "thumb": "photos/thumb/faces-marker (36).jpg",
-    "full": "photos/full/faces-marker (36).jpg"
+    "full": "photos/full/faces-marker (36).jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1796,7 +1854,8 @@ const items = [
     "title": "PGSRD-trc-13",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-13",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -1868,13 +1927,15 @@ const items = [
     "type": "image",
     "id": "d4-2843",
     "thumb": "photos/thumb/IMG_2843.jpg",
-    "full": "photos/full/IMG_2843.jpg"
+    "full": "photos/full/IMG_2843.jpg",
+    "status": "available"
   },
   {
     "type": "image",
     "id": "84-1909",
     "thumb": "photos/thumb/IMG_1909-1.jpg",
-    "full": "photos/full/IMG_1909-1.jpg"
+    "full": "photos/full/IMG_1909-1.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1890,7 +1951,8 @@ const items = [
     "title": "Farbkörper. Fkb-02",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-02",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -1989,7 +2051,8 @@ const items = [
     "type": "image",
     "id": "0f-9340",
     "thumb": "photos/thumb/IMG_9340.jpg",
-    "full": "photos/full/IMG_9340.jpg"
+    "full": "photos/full/IMG_9340.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2014,7 +2077,8 @@ const items = [
     "type": "image",
     "id": "14-4172",
     "thumb": "photos/thumb/IMG_4172.jpg",
-    "full": "photos/full/IMG_4172.jpg"
+    "full": "photos/full/IMG_4172.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2026,7 +2090,8 @@ const items = [
     "type": "image",
     "id": "35-4124",
     "thumb": "photos/thumb/IMG_4124.jpg",
-    "full": "photos/full/IMG_4124.jpg"
+    "full": "photos/full/IMG_4124.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2077,7 +2142,8 @@ const items = [
     "title": "Farbkörper. Fkb-02",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-02",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2107,7 +2173,8 @@ const items = [
     "type": "image",
     "id": "d0-9210",
     "thumb": "photos/thumb/IMG_9210.jpg",
-    "full": "photos/full/IMG_9210.jpg"
+    "full": "photos/full/IMG_9210.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2125,13 +2192,15 @@ const items = [
     "type": "image",
     "id": "f3-4173",
     "thumb": "photos/thumb/IMG_4173.jpg",
-    "full": "photos/full/IMG_4173.jpg"
+    "full": "photos/full/IMG_4173.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "7e-9989",
     "thumb": "photos/thumb/IMG_9989.jpg",
-    "full": "photos/full/IMG_9989.jpg"
+    "full": "photos/full/IMG_9989.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2141,13 +2210,15 @@ const items = [
     "title": "Farbkörper. Fkb-05",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-05",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
     "id": "97-5660",
     "thumb": "photos/thumb/IMG_5660.jpg",
-    "full": "photos/full/IMG_5660.jpg"
+    "full": "photos/full/IMG_5660.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2157,13 +2228,15 @@ const items = [
     "title": "Farbkörper. Fkb-05",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-05",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
     "id": "f3-9097",
     "thumb": "photos/thumb/IMG_9097.jpg",
-    "full": "photos/full/IMG_9097.jpg"
+    "full": "photos/full/IMG_9097.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2178,7 +2251,8 @@ const items = [
     "full": "photos/full/faces-marker (2).jpg",
     "title": "fish is watching",
     "link": "https://fish-is-watching.com/",
-    "link_text": "listen now"
+    "link_text": "listen now",
+    "status": "sold"
   },
   {
     "type": "text",
@@ -2234,7 +2308,8 @@ const items = [
     "title": "PGSRD-trc-04",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-04",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2262,13 +2337,15 @@ const items = [
     "title": "Farbkörper. Fkb-02",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-02",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "64-4116",
     "thumb": "photos/thumb/IMG_4116.jpg",
-    "full": "photos/full/IMG_4116.jpg"
+    "full": "photos/full/IMG_4116.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2377,7 +2454,8 @@ const items = [
     "type": "image",
     "id": "f9-5991",
     "thumb": "photos/thumb/IMG_5991.jpg",
-    "full": "photos/full/IMG_5991.jpg"
+    "full": "photos/full/IMG_5991.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2387,7 +2465,8 @@ const items = [
     "title": "Farbkörper. Fkb-04",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-04",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "video",
@@ -2409,7 +2488,8 @@ const items = [
     "title": "Farbkörper. Fkb-04",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-04",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2419,13 +2499,15 @@ const items = [
     "title": "Farbkörper. Fkb-02",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-02",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "sold"
   },
   {
     "type": "image",
     "id": "bb-4175",
     "thumb": "photos/thumb/IMG_4175.jpg",
-    "full": "photos/full/IMG_4175.jpg"
+    "full": "photos/full/IMG_4175.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2437,7 +2519,8 @@ const items = [
     "type": "image",
     "id": "21-4056",
     "thumb": "photos/thumb/IMG_4056.jpg",
-    "full": "photos/full/IMG_4056.jpg"
+    "full": "photos/full/IMG_4056.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2508,7 +2591,8 @@ const items = [
     "type": "image",
     "id": "a0-2241",
     "thumb": "photos/thumb/IMG_2241.jpg",
-    "full": "photos/full/IMG_2241.jpg"
+    "full": "photos/full/IMG_2241.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2532,7 +2616,8 @@ const items = [
     "type": "image",
     "id": "05-9104",
     "thumb": "photos/thumb/IMG_9104.jpg",
-    "full": "photos/full/IMG_9104.jpg"
+    "full": "photos/full/IMG_9104.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2544,7 +2629,8 @@ const items = [
     "type": "image",
     "id": "09-9240",
     "thumb": "photos/thumb/IMG_9240.jpg",
-    "full": "photos/full/IMG_9240.jpg"
+    "full": "photos/full/IMG_9240.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2568,7 +2654,8 @@ const items = [
     "thumb": "photos/thumb/IMG_2213.jpg",
     "full": "photos/full/IMG_2213.jpg",
     "title": "Farbkörper. Fkb-02",
-    "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient."
+    "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
+    "status": "sold"
   },
   {
     "type": "audio",
@@ -2580,7 +2667,8 @@ const items = [
     "type": "image",
     "id": "01-0212",
     "thumb": "photos/thumb/IMG_0212.jpg",
-    "full": "photos/full/IMG_0212.jpg"
+    "full": "photos/full/IMG_0212.jpg",
+    "status": "available"
   },
   {
     "type": "image",
@@ -2606,7 +2694,8 @@ const items = [
     "title": "Farbkörper. Fkb-02",
     "description": "Pigment. Layered, compressed, planed. Pressure stored as gradient.",
     "link": "https://kremenskii.art/gallery/farbkoerper/fkb-02",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2634,7 +2723,8 @@ const items = [
     "type": "image",
     "id": "a6-4053",
     "thumb": "photos/thumb/IMG_4053.jpg",
-    "full": "photos/full/IMG_4053.jpg"
+    "full": "photos/full/IMG_4053.jpg",
+    "status": "sold"
   },
   {
     "type": "image",
@@ -2652,7 +2742,8 @@ const items = [
     "type": "image",
     "id": "67-2242",
     "thumb": "photos/thumb/IMG_2242.jpg",
-    "full": "photos/full/IMG_2242.jpg"
+    "full": "photos/full/IMG_2242.jpg",
+    "status": "sold"
   },
   {
     "type": "embed",
@@ -2682,7 +2773,8 @@ const items = [
     "title": "PGSRD-trc-04",
     "description": "Plywood, gravel, road dust. Imprint, friction, displacement. Surface as topography of action.",
     "link": "https://kremenskii.art/gallery/pgsrd-trc/pgsrd-trc-04",
-    "link_text": "View on kremenskii.art"
+    "link_text": "View on kremenskii.art",
+    "status": "available"
   },
   {
     "type": "image",
@@ -3091,12 +3183,16 @@ function buildMobileDetail(item) {
   html += '<div class="mobile-detail-row">';
   if (item.title) {
     html += `<span class="mobile-detail-title">${item.title}</span>`;
+  } else if (item.status) {
+    // No title but has status — put status in title position
+    html += buildStatusHtml(item);
   }
   html += `<button class="mobile-share-btn" data-id="${item.id}">share</button>`;
   html += '</div>';
   if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
   if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
-  html += buildStatusHtml(item);
+  // Status after description only if title also exists (otherwise already shown above)
+  if (item.title && item.status) html += buildStatusHtml(item);
   html += '</div>';
   return html;
 }

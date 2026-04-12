@@ -386,12 +386,16 @@ function buildMobileDetail(item) {
   html += '<div class="mobile-detail-row">';
   if (item.title) {
     html += `<span class="mobile-detail-title">${item.title}</span>`;
+  } else if (item.status) {
+    // No title but has status — put status in title position
+    html += buildStatusHtml(item);
   }
   html += `<button class="mobile-share-btn" data-id="${item.id}">share</button>`;
   html += '</div>';
   if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
   if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
-  html += buildStatusHtml(item);
+  // Status after description only if title also exists (otherwise already shown above)
+  if (item.title && item.status) html += buildStatusHtml(item);
   html += '</div>';
   return html;
 }
