@@ -33,12 +33,15 @@ import re
 import sys
 from pathlib import Path
 
+FAST_MODE = '--f' in sys.argv
+
 try:
     from PIL import Image
     from PIL import ImageOps
 except ImportError:
-    print("Pillow is required: pip install Pillow")
-    sys.exit(1)
+    if not FAST_MODE:
+        print("Pillow is required: pip install Pillow")
+        sys.exit(1)
 
 import config
 
@@ -116,28 +119,24 @@ def process_images():
 
         name = src_path.stem
         item_id = make_short_id(name)
-        print(f"  [img] {src_path.name} → {item_id}")
 
-        img = Image.open(src_path)
-
-        # Auto-rotate based on EXIF
-        try:
-            img = ImageOps.exif_transpose(img)
-        except Exception:
-            pass
-
-        if img.mode != "RGB":
-            img = img.convert("RGB")
-
-        # Thumbnail
-        thumb = resize_image(img, config.THUMB_LONG_EDGE)
-        thumb.save(THUMB_DIR / f"{name}.jpg", "JPEG",
-                   quality=config.THUMB_QUALITY, optimize=True)
-
-        # Full size
-        full = resize_image(img, config.FULL_LONG_EDGE)
-        full.save(FULL_DIR / f"{name}.jpg", "JPEG",
-                  quality=config.FULL_QUALITY, optimize=True)
+        if not FAST_MODE:
+            print(f"  [img] {src_path.name} → {item_id}")
+            img = Image.open(src_path)
+            try:
+                img = ImageOps.exif_transpose(img)
+            except Exception:
+                pass
+            if img.mode != "RGB":
+                img = img.convert("RGB")
+            thumb = resize_image(img, config.THUMB_LONG_EDGE)
+            thumb.save(THUMB_DIR / f"{name}.jpg", "JPEG",
+                       quality=config.THUMB_QUALITY, optimize=True)
+            full = resize_image(img, config.FULL_LONG_EDGE)
+            full.save(FULL_DIR / f"{name}.jpg", "JPEG",
+                      quality=config.FULL_QUALITY, optimize=True)
+        else:
+            print(f"  [img] {src_path.name} → {item_id} (skip resize)")
 
         # Load optional metadata
         meta = load_metadata(src_path)
@@ -158,6 +157,10 @@ def process_images():
         if meta.get("link"):
             item["link"] = meta["link"]
             item["link_text"] = meta.get("link_text", "View on kremenskii.art")
+        if meta.get("status"):
+            item["status"] = meta["status"]
+            if meta.get("sold_info"):
+                item["sold_info"] = meta["sold_info"]
 
         image_items.append(item)
 
@@ -346,8 +349,8 @@ def shuffle_items(all_items):
     Order items using order.json for pinned positions.
     
     Logic:
-    - If order.json exists: first N items (pinned) stay in their saved order.
-      New items + remaining items are shuffled and appended after pinned.
+    - If order.json exists: pinned items stay in saved order.
+      NEW items (not in pinned list) are shuffled and inserted right after pinned.
     - If order.json doesn't exist: full shuffle, then save first N as pinned.
     
     PINNED_COUNT from config controls how many items are locked.
@@ -360,6 +363,7 @@ def shuffle_items(all_items):
         # Load pinned IDs
         saved = json.loads(order_path.read_text(encoding="utf-8"))
         pinned_ids = saved.get("pinned", [])
+        pinned_set = set(pinned_ids)
 
         # Build lookup
         item_by_id = {item["id"]: item for item in all_items}
@@ -367,16 +371,17 @@ def shuffle_items(all_items):
         # Pinned items in saved order (skip any that no longer exist)
         pinned = [item_by_id.pop(pid) for pid in pinned_ids if pid in item_by_id]
 
-        # Everything else gets shuffled
-        rest = list(item_by_id.values())
+        # New items = not in pinned list at all
+        new_items = list(item_by_id.values())
         rng = random.Random(len(all_items))
-        rng.shuffle(rest)
+        rng.shuffle(new_items)
 
-        result = pinned + rest
-        print(f"  Order: {len(pinned)} pinned + {len(rest)} shuffled")
-        if rest:
-            print(f"  New/unpinned IDs (add to {order_path} to pin):")
-            for item in rest:
+        # New items go right after pinned
+        result = pinned + new_items
+        print(f"  Order: {len(pinned)} pinned + {len(new_items)} new")
+        if new_items:
+            print(f"  New IDs (add to {order_path} to pin):")
+            for item in new_items:
                 t = item.get('type', '?')
                 name = item.get('_src_name', item['id'])
                 print(f"    {item['id']}  [{t}]  {name}")
@@ -454,6 +459,8 @@ def build_editor(image_items):
             "description": item.get("description", ""),
             "link": item.get("link", ""),
             "link_text": item.get("link_text", ""),
+            "status": item.get("status", ""),
+            "sold_info": item.get("sold_info", ""),
         })
 
     editor_json = json.dumps(editor_items, indent=2, ensure_ascii=False)
@@ -475,12 +482,12 @@ h1 {{ font-size: 18px; font-weight: 500; letter-spacing: 0.1em; text-transform: 
 .item img {{ width: 160px; height: auto; object-fit: contain; flex-shrink: 0; background: #f5f5f5; }}
 .item-fields {{ flex: 1; display: flex; flex-direction: column; gap: 10px; }}
 .item-fields label {{ font-family: 'DM Mono', monospace; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }}
-.item-fields input, .item-fields textarea {{
+.item-fields input, .item-fields textarea, .item-fields select {{
   font-family: 'DM Mono', monospace; font-size: 14px; padding: 8px 10px;
   border: 1px solid #ddd; border-radius: 3px; background: #fafafa;
   transition: border-color 0.2s;
 }}
-.item-fields input:focus, .item-fields textarea:focus {{ outline: none; border-color: #999; background: #fff; }}
+.item-fields input:focus, .item-fields textarea:focus, .item-fields select:focus {{ outline: none; border-color: #999; background: #fff; }}
 .item-fields textarea {{ resize: vertical; min-height: 60px; }}
 .filename {{ font-family: 'DM Mono', monospace; font-size: 11px; color: #bbb; }}
 .item-number {{ font-family: 'DM Mono', monospace; font-size: 11px; color: #ccc; }}
@@ -534,11 +541,20 @@ items.forEach((item, i) => {{
       <input type="text" data-field="link" value="${{escAttr(item.link)}}" placeholder="https://kremenskii.art/... (optional)">
       <label>Link text</label>
       <input type="text" data-field="link_text" value="${{escAttr(item.link_text)}}" placeholder="View on kremenskii.art">
+      <label>Status</label>
+      <select data-field="status">
+        <option value=""${{item.status === '' ? ' selected' : ''}}>— none —</option>
+        <option value="available"${{item.status === 'available' ? ' selected' : ''}}>Available</option>
+        <option value="sold"${{item.status === 'sold' ? ' selected' : ''}}>Private collection</option>
+      </select>
+      <label>Sold info (city, year)</label>
+      <input type="text" data-field="sold_info" value="${{escAttr(item.sold_info)}}" placeholder="Stuttgart, 2024 (optional)">
     </div>
   `;
   editor.appendChild(div);
-  div.querySelectorAll('input, textarea').forEach(el => {{
+  div.querySelectorAll('input, textarea, select').forEach(el => {{
     el.addEventListener('input', () => {{ div.classList.add('changed'); }});
+    el.addEventListener('change', () => {{ div.classList.add('changed'); }});
   }});
 }});
 
@@ -550,10 +566,14 @@ function getItemData(i) {{
   const desc = div.querySelector('[data-field="description"]').value.trim();
   const link = div.querySelector('[data-field="link"]').value.trim();
   const linkText = div.querySelector('[data-field="link_text"]').value.trim();
+  const status = div.querySelector('[data-field="status"]').value;
+  const soldInfo = div.querySelector('[data-field="sold_info"]').value.trim();
   if (title) data.title = title;
   if (desc) data.description = desc;
   if (link) data.link = link;
   if (linkText) data.link_text = linkText;
+  if (status) data.status = status;
+  if (soldInfo) data.sold_info = soldInfo;
   return data;
 }}
 
@@ -617,7 +637,7 @@ async function downloadChanged() {{
 # --- Main ---
 
 def main():
-    print(f"\n  Building {config.SITE_TITLE}...\n")
+    print(f"\n  Building {config.SITE_TITLE}...{'  [FAST MODE — skip image resize]' if FAST_MODE else ''}\n")
 
     if not SRC_DIR.exists():
         SRC_DIR.mkdir()

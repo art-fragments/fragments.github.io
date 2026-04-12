@@ -73,9 +73,7 @@ function buildGridItem(item, i) {
     if (isDesktop()) {
       div.addEventListener('click', () => openFromGrid(item.id));
     }
-    if (!isDesktop()) {
-      div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
-    }
+    div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
   } else if (item.type === 'embed') {
     div.innerHTML = buildEmbedBlock(item);
     div.style.cursor = 'default';
@@ -87,11 +85,9 @@ function buildGridItem(item, i) {
     if (isDesktop()) {
       div.addEventListener('click', () => openFromGrid(item.id));
     }
-    if (!isDesktop()) {
-      div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
-    }
+    div.innerHTML += hasDetail(item) ? buildMobileDetail(item) : buildMobileShare(item);
   } else {
-    const isLoud = item.text.length <= 60;
+    const isLoud = item.text.length <= 50;
     if (isLoud) div.classList.add('text-loud');
     div.innerHTML = `<div class="text-content">${item.text}</div>`;
     if (isDesktop()) {
@@ -360,7 +356,19 @@ function bindShareBtn(container, id) {
 // === Detail metadata ===
 
 function hasDetail(item) {
-  return item.title || item.description || item.link;
+  return item.title || item.description || item.link || item.status;
+}
+
+function buildStatusHtml(item) {
+  if (!item.status) return '';
+  if (item.status === 'available') {
+    return `<div class="detail-status">Available · <a href="mailto:hi@kremenskii.art">hi@kremenskii.art</a></div>`;
+  }
+  if (item.status === 'sold') {
+    const info = item.sold_info ? ` · ${item.sold_info}` : '';
+    return `<div class="detail-status">Private collection${info}</div>`;
+  }
+  return '';
 }
 
 function buildDetailHtml(item) {
@@ -369,6 +377,7 @@ function buildDetailHtml(item) {
   if (item.title) html += `<div class="detail-title">${item.title}</div>`;
   if (item.description) html += `<div class="detail-description">${item.description}</div>`;
   if (item.link) html += `<a class="detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
+  html += buildStatusHtml(item);
   return html;
 }
 
@@ -382,6 +391,7 @@ function buildMobileDetail(item) {
   html += '</div>';
   if (item.description) html += `<div class="mobile-detail-desc">${item.description}</div>`;
   if (item.link) html += `<a class="mobile-detail-link" href="${item.link}" target="_blank">${item.link_text || 'View on kremenskii.art'} →</a>`;
+  html += buildStatusHtml(item);
   html += '</div>';
   return html;
 }
