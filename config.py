@@ -1,6 +1,6 @@
 # Site configuration
-SITE_TITLE = "fragments"
-SITE_SUBTITLE = "dmitrii kremenskii"
+SITE_TITLE = "fragments. everything leaves a mark. "
+SITE_SUBTITLE = "Dmitrii Kremenskii"
 SITE_EMAIL = "hi@kremenskii.art"
 SITE_AUTHOR = "Dmitrii Kremenskii"
 
